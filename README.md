@@ -1,4 +1,6 @@
-# App de Gestão Financeira (nome provisório)
+# Sobra Vida
+
+Finanças em ordem, sobra mais vida. Domínio: sobravida.com.br.
 
 Gestão financeira pessoal com a lógica de uma empresa: plano de contas, resultado do mês (DRE), previsto x realizado, fluxo de caixa por conta e patrimônio. Público inicial: profissionais liberais e autônomos.
 

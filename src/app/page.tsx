@@ -35,13 +35,17 @@ export default function Home() {
   return (
     <main className="flex flex-1 items-center px-4 py-16">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent">Em construção</p>
+        <p className="flex items-baseline gap-3">
+          <span className="font-display text-xl font-extrabold tracking-tight">Sobra Vida</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-accent">Em construção</span>
+        </p>
         <h1 className="font-display text-4xl font-extrabold tracking-tight text-balance">
-          A gestão financeira de uma empresa, aplicada à sua vida.
+          Finanças em ordem. Sobra mais vida.
         </h1>
         <p className="text-lg text-muted">
-          Quanto sobrou no mês, o que ainda vai entrar e sair até o fim do ano e como está o seu patrimônio.
-          Feito para profissionais liberais e autônomos.
+          A gestão financeira de uma empresa, aplicada à sua vida: quanto sobrou no mês, o que ainda vai
+          entrar e sair até o fim do ano e como está o seu patrimônio. Feito para profissionais liberais e
+          autônomos.
         </p>
         <p className="text-muted">Versão de testes prevista para maio de 2027.</p>
         <div className="border-t border-line pt-4">
