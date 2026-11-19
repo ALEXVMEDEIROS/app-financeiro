@@ -28,6 +28,21 @@ desktop.ini
 # Vercel
 .vercel/
 
+# testes e TypeScript
+/coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# certificados
+*.pem
+
+# yarn
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
 # editores
 .vscode/
 .idea/
