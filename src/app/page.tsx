@@ -7,22 +7,26 @@ async function StatusBanco() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   let ok = false;
-  if (url && key) {
+  let motivo = "";
+  if (!url || !key) {
+    motivo = `falta ${[!url && "NEXT_PUBLIC_SUPABASE_URL", !key && "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"].filter(Boolean).join(" e ")}`;
+  } else {
     try {
-      const r = await fetch(`${url}/auth/v1/settings`, {
-        headers: { apikey: key },
+      const r = await fetch(`${url.trim()}/auth/v1/settings`, {
+        headers: { apikey: key.trim() },
         cache: "no-store",
         signal: AbortSignal.timeout(5000),
       });
       ok = r.ok;
+      if (!ok) motivo = `o Supabase respondeu com erro ${r.status}`;
     } catch {
-      ok = false;
+      motivo = "não foi possível alcançar o endereço do Supabase";
     }
   }
   return (
     <p className="flex items-center gap-2 text-sm text-muted">
-      <span className={`inline-block h-2.5 w-2.5 rounded-full ${ok ? "bg-pos" : "bg-neg"}`} aria-hidden="true" />
-      {ok ? "Banco de dados conectado" : "Banco de dados sem conexão: confira as variáveis de ambiente"}
+      <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${ok ? "bg-pos" : "bg-neg"}`} aria-hidden="true" />
+      {ok ? "Banco de dados conectado" : `Banco de dados sem conexão: ${motivo}`}
     </p>
   );
 }
