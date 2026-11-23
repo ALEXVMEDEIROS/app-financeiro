@@ -50,7 +50,7 @@ A tabela `usuarios` do documento vira `perfis`, ligada ao usuário do Supabase A
 - **Juros, multa e desconto (R12, sugestão de testador em 23/11/2026):** `juros`, `multa` e `desconto` são `numeric(14,2)`, padrão 0, nunca negativos, e não se aplicam a transferências. O `valor` continua sendo o valor original (o do vencimento). Valor efetivamente pago ou recebido = valor + juros + multa − desconto, e não pode ser negativo.
   - Visão **previsto** usa o `valor` original; visão **caixa** usa o valor efetivo.
   - No resultado do ano, o `valor` original (menos o desconto) fica na categoria do lançamento; juros e multa de **despesas** aparecem na categoria "Juros e multas por atraso" e os de **receitas** em "Juros e multas recebidos". Assim o usuário vê quanto perdeu (ou ganhou) com atrasos.
-- Toda chave estrangeira aponta para um registro do **mesmo usuário** (garantido por função de verificação, além do RLS).
+- Toda chave estrangeira aponta para um registro do **mesmo usuário**, garantido por chaves estrangeiras compostas `(usuario_id, id)`: o banco recusa, por exemplo, uma categoria ligada ao grupo de outra pessoa. (Ajuste feito na sessão 2: mais simples e mais seguro que uma função de verificação.)
 
 ### Isolamento por usuário (RLS)
 
@@ -58,7 +58,9 @@ Em cada tabela com `usuario_id`:
 - RLS ligado; `usuario_id` tem valor padrão `auth.uid()`.
 - Quatro políticas (ler, criar, alterar, apagar), todas com a condição `usuario_id = auth.uid()`.
 - Em `perfis`, a condição é `id = auth.uid()`.
-- Nenhuma política para o papel anônimo: sem login, nada é lido.
+- Nenhuma política para o papel anônimo, e as permissões de base do papel `anon` são retiradas: sem login, nada é lido nem gravado.
+- **Cada tabela já nasce com RLS** na mesma migração que a cria (ajuste da sessão 2; antes o RLS estava previsto só na sessão 5). No Supabase, tabela sem RLS fica aberta a quem tem a chave pública.
+- Para aplicar migrações: `npx supabase db push --remote` (sem `--remote`, a CLI 3.x tenta um banco local).
 
 ### Cadastro de um usuário novo
 
@@ -128,7 +130,7 @@ Cada sessão tem cerca de 1 hora e termina com algo testado e salvo no GitHub.
 | 2 | Tabelas de cadastro | Migração: `perfis`, `contas_financeiras`, `grupos`, `categorias` |
 | 3 | Demais tabelas | Migração: `centros_custo`, `pessoas`, `formas_pagamento`, `bens` |
 | 4 | Lançamentos | Migração: `lancamentos` com todas as verificações |
-| 5 | RLS | Políticas nas 9 tabelas e verificação de "mesmo usuário" nas chaves estrangeiras |
+| 5 | RLS (revisão) | Conferir as políticas das 9 tabelas, já criadas junto com cada tabela |
 | 6 | Cadastro automático | Função que cria o perfil e copia o plano de contas padrão |
 | 7 | Revisão do banco | Revisão de segurança das migrações; correções |
 | 8 | Clientes Supabase | `lib/supabase/server.ts` e `proxy.ts` |
