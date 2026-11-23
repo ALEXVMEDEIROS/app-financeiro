@@ -61,6 +61,8 @@ Em cada tabela com `usuario_id`:
 - Nenhuma política para o papel anônimo, e as permissões de base do papel `anon` são retiradas: sem login, nada é lido nem gravado.
 - **Cada tabela já nasce com RLS** na mesma migração que a cria (ajuste da sessão 2; antes o RLS estava previsto só na sessão 5). No Supabase, tabela sem RLS fica aberta a quem tem a chave pública.
 - Para aplicar migrações: `npx supabase db push --remote` (sem `--remote`, a CLI 3.x tenta um banco local).
+- Para revisar: `npx supabase db advisors --remote --level info` (verificador de segurança e desempenho do Supabase) e `npx supabase db query --remote --read-only "<sql>"` para consultas que só leem.
+- Revisão da sessão 5 (23/11/2026): RLS ligado nas 9 tabelas, políticas só para `authenticated` com `auth.uid()` em leitura e gravação, `anon` sem permissão; verificador sem alertas de segurança. Índices das chaves compostas de `lancamentos` corrigidos.
 
 ### Cadastro de um usuário novo
 
