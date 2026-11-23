@@ -62,6 +62,8 @@ Em cada tabela com `usuario_id`:
 - **Cada tabela já nasce com RLS** na mesma migração que a cria (ajuste da sessão 2; antes o RLS estava previsto só na sessão 5). No Supabase, tabela sem RLS fica aberta a quem tem a chave pública.
 - Para aplicar migrações: `npx supabase db push --remote` (sem `--remote`, a CLI 3.x tenta um banco local).
 - Para revisar: `npx supabase db advisors --remote --level info` (verificador de segurança e desempenho do Supabase) e `npx supabase db query --remote --read-only "<sql>"` para consultas que só leem.
+- **Permissões de base (sessão 7):** neste projeto, tabelas criadas por migração **não** recebem SELECT/INSERT/UPDATE/DELETE automáticos para `authenticated`. Toda tabela nova precisa de `grant ... to authenticated` explícito na própria migração, além do RLS. `perfis`: só `select` e `update (nome)`; o `plano` muda apenas pelo `service_role`. Ligações entre cadastros usam NO ACTION (não RESTRICT), para a exclusão de conta funcionar.
+- Testes do banco em `supabase/tests/` (cada um desfaz tudo ao final; rodar só com autorização do dono): `teste_cadastro_automatico.sql` e `teste_usuario_logado.sql`.
 - Revisão da sessão 5 (23/11/2026): RLS ligado nas 9 tabelas, políticas só para `authenticated` com `auth.uid()` em leitura e gravação, `anon` sem permissão; verificador sem alertas de segurança. Índices das chaves compostas de `lancamentos` corrigidos.
 
 ### Cadastro de um usuário novo
