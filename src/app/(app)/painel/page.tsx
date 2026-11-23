@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 // Versão mínima do painel (F1): confirma que o login funciona e que o
 // cadastro automático criou o plano de contas. O painel de verdade vem na F3.
-async function Boas_vindas() {
+async function BoasVindas() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const usuarioId = data?.claims?.sub;
@@ -25,10 +25,8 @@ async function Boas_vindas() {
   const primeiroNome = (perfil?.nome ?? "").split(" ")[0] || "por aqui";
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="font-display text-3xl font-extrabold tracking-tight">
-        Olá, {primeiroNome}!
-      </h1>
+    <div className="flex max-w-xl flex-col gap-4">
+      <h1 className="font-display text-3xl font-extrabold tracking-tight">Olá, {primeiroNome}!</h1>
       <p className="text-lg text-muted">Sua conta no Sobra Vida está ativa.</p>
       <div className="rounded-xl border border-line bg-surface p-5">
         <p className="font-semibold">Seu plano de contas já está pronto</p>
@@ -46,12 +44,8 @@ async function Boas_vindas() {
 
 export default function PaginaPainel() {
   return (
-    <main className="flex flex-1 items-center px-4 py-12">
-      <div className="mx-auto w-full max-w-xl">
-        <Suspense fallback={<p className="text-muted">Carregando…</p>}>
-          <Boas_vindas />
-        </Suspense>
-      </div>
-    </main>
+    <Suspense fallback={<p className="text-muted">Carregando…</p>}>
+      <BoasVindas />
+    </Suspense>
   );
 }
