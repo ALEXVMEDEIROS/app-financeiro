@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Caminhos que exigem login. Sem sessão válida, o visitante vai para /entrar.
-const AREA_LOGADA = ["/painel"];
+const AREA_LOGADA = ["/painel", "/nova-senha"];
 
 function exigeLogin(caminho: string) {
   return AREA_LOGADA.some((p) => caminho === p || caminho.startsWith(`${p}/`));

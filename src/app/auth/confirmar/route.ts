@@ -1,5 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { destinoSeguro } from "@/components/campo";
 import { createClient } from "@/lib/supabase/server";
 
 // Recebe o clique no link do e-mail (confirmação de cadastro e, depois,
@@ -11,15 +12,6 @@ import { createClient } from "@/lib/supabase/server";
 //                                qualquer navegador ou aparelho)
 //   ?code=...                   (formato padrão; só funciona no mesmo navegador
 //                                em que a pessoa se cadastrou)
-
-// Só aceita destinos dentro do próprio site, para ninguém usar o link
-// para mandar o usuário a um endereço externo.
-function destinoSeguro(valor: string | null) {
-  if (!valor || !valor.startsWith("/") || valor.startsWith("//") || valor.startsWith("/\\")) {
-    return "/painel";
-  }
-  return valor;
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
