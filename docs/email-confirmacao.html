@@ -1,0 +1,15 @@
+<!--
+  Modelo do e-mail de confirmação de cadastro do Sobra Vida.
+  Onde fica: Supabase → Authentication → Emails → "Confirm signup".
+  Assunto: Confirme seu cadastro no Sobra Vida
+  O link usa token_hash, que funciona em qualquer navegador ou aparelho
+  (a rota /auth/confirmar faz a validação).
+-->
+<h2>Bem-vindo ao Sobra Vida</h2>
+<p>Falta só um passo: confirme seu e-mail para ativar sua conta.</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/confirmar?token_hash={{ .TokenHash }}&type=email">Confirmar meu e-mail</a>
+</p>
+<p>O link vale por pouco tempo e funciona uma vez só.</p>
+<p>Se você não pediu este cadastro, é só ignorar esta mensagem.</p>
+<p>Sobra Vida · Finanças em ordem. Sobra mais vida.</p>

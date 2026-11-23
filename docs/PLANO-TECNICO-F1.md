@@ -166,7 +166,8 @@ As demais sugestões dele (balões de ajuda, sinal e cor em positivo e negativo)
 
 ## Pontos de atenção
 
-- **E-mail de confirmação:** o envio padrão do Supabase tem limite baixo de mensagens por hora, suficiente para testes. Antes do beta (F5), configurar um serviço de envio próprio com o domínio sobravida.com.br.
+- **E-mail de confirmação:** o envio padrão do Supabase tem limite baixo de mensagens por hora e **não permite editar os modelos** (confirmado na sessão 10). Enquanto isso, o e-mail sai no modelo padrão, em inglês, com link no formato `?code=` (PKCE), que só funciona no **mesmo navegador** do cadastro. Na F5, com envio próprio (SMTP) no domínio sobravida.com.br, aplicar o modelo em português de `docs/email-confirmacao.html` (link com `token_hash`, que funciona em qualquer aparelho). A rota `/auth/confirmar` já aceita os dois formatos.
+- **URLs no Supabase (sessão 10):** Site URL `https://www.sobravida.com.br`; Redirect URLs `https://www.sobravida.com.br/**`, `https://app-financeiro-zeta-lake.vercel.app/**`, `http://localhost:3000/**`.
 - **Chaves:** a chave `service_role` e a senha do banco nunca vão para o código, para o GitHub nem para o chat. Os testes de isolamento usam só a chave pública e usuários de teste.
 - **Variáveis na Vercel:** hoje só em Production. Se a F1 usar branches de teste, estender para Preview.
 - **Sem dados reais na F1:** as contas de teste usam dados inventados. Os dados reais do dono entram só na F4, numa conta privada.
