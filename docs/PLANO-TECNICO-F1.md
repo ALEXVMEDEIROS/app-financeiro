@@ -66,6 +66,8 @@ Em cada tabela com `usuario_id`:
 
 ### Cadastro de um usuário novo
 
+Feito na sessão 6 (migração `cadastro_automatico`), com as funções no esquema `interno`, fora da API. Teste em `supabase/tests/teste_cadastro_automatico.sql` (desfaz tudo ao final; rodar com `npx supabase db query --remote --yes -f ...`, com autorização do dono). Resultado em 23/11/2026: perfil com nome, 13 grupos (3 de receita, 10 de despesa), 46 categorias, 2 centros de custo, 6 formas de pagamento.
+
 Uma função no banco, disparada quando o Supabase Auth cria o usuário:
 1. cria o registro em `perfis`;
 2. copia o plano de contas padrão (abaixo), os centros de custo e as formas de pagamento para esse usuário;
