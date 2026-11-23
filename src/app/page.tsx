@@ -26,7 +26,9 @@ async function StatusBanco() {
   return (
     <p className="flex items-center gap-2 text-sm text-muted">
       <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${ok ? "bg-pos" : "bg-neg"}`} aria-hidden="true" />
-      {ok ? "Banco de dados conectado" : `Banco de dados sem conexão: ${motivo}`}
+      {ok
+        ? `Banco de dados conectado (projeto ${new URL(url!.trim()).hostname.split(".")[0]})`
+        : `Banco de dados sem conexão: ${motivo}`}
     </p>
   );
 }
