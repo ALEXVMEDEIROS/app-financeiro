@@ -37,7 +37,7 @@ A tabela `usuarios` do documento vira `perfis`, ligada ao usuário do Supabase A
 | `centros_custo` | id, usuario_id, nome, ativo | R9 |
 | `pessoas` | id, usuario_id, nome, documento (opcional), tipo (`cliente`, `fornecedor`, `ambos`), contato, ativa | R9; documento opcional (LGPD) |
 | `formas_pagamento` | id, usuario_id, nome, parcelas_max, dias_recebimento, ativa | Taxas ficam para a fase 3 |
-| `lancamentos` | id, usuario_id, tipo (`receita`, `despesa`, `transferencia`), data_lancamento, data_vencimento, data_pagamento, valor, categoria_id, conta_id, conta_destino_id, centro_custo_id, pessoa_id, forma_pagamento_id, observacao, parcela_num, parcela_total, grupo_parcelas_id, criado_em, atualizado_em | R1 a R4, R11 |
+| `lancamentos` | id, usuario_id, tipo (`receita`, `despesa`, `transferencia`), data_lancamento, data_vencimento, data_pagamento, valor, juros, multa, desconto, categoria_id, conta_id, conta_destino_id, centro_custo_id, pessoa_id, forma_pagamento_id, observacao, parcela_num, parcela_total, grupo_parcelas_id, criado_em, atualizado_em | R1 a R4, R11, R12 |
 | `bens` | id, usuario_id, nome, tipo (`imovel`, `veiculo`, `participacao`, `outro`), valor_avaliacao, data_avaliacao, ativo | R10; o histórico de avaliações entra na F6 |
 
 ### Regras gravadas no banco (verificações)
@@ -47,6 +47,9 @@ A tabela `usuarios` do documento vira `perfis`, ligada ao usuário do Supabase A
 - **Transferência** exige `conta_destino_id`, diferente de `conta_id`, e não aceita categoria (R1, R4).
 - `data_pagamento` vazia = em aberto (R2).
 - Parcelas: `parcela_num` entre 1 e `parcela_total`; as parcelas de um mesmo lançamento compartilham `grupo_parcelas_id` (R11).
+- **Juros, multa e desconto (R12, sugestão de testador em 23/11/2026):** `juros`, `multa` e `desconto` são `numeric(14,2)`, padrão 0, nunca negativos, e não se aplicam a transferências. O `valor` continua sendo o valor original (o do vencimento). Valor efetivamente pago ou recebido = valor + juros + multa − desconto, e não pode ser negativo.
+  - Visão **previsto** usa o `valor` original; visão **caixa** usa o valor efetivo.
+  - No resultado do ano, o `valor` original (menos o desconto) fica na categoria do lançamento; juros e multa de **despesas** aparecem na categoria "Juros e multas por atraso" e os de **receitas** em "Juros e multas recebidos". Assim o usuário vê quanto perdeu (ou ganhou) com atrasos.
 - Toda chave estrangeira aponta para um registro do **mesmo usuário** (garantido por função de verificação, além do RLS).
 
 ### Isolamento por usuário (RLS)
@@ -74,7 +77,7 @@ Escrito do zero para o app, pensado para quem tem renda de trabalho e despesas d
 | --- | --- |
 | Trabalho | Honorários e serviços · Salário ou pró-labore · Comissões · Distribuição de lucros |
 | Rendimentos | Rendimentos de aplicações · Aluguéis recebidos |
-| Outras receitas | Reembolsos · Presentes recebidos · Outras receitas |
+| Outras receitas | Reembolsos · Presentes recebidos · Juros e multas recebidos · Outras receitas |
 
 **Despesas**
 
@@ -86,7 +89,8 @@ Escrito do zero para o app, pensado para quem tem renda de trabalho e despesas d
 | Saúde | Plano de saúde · Consultas e exames · Farmácia |
 | Educação | Escola e cursos · Livros e materiais |
 | Trabalho | Aluguel de sala · Softwares e assinaturas · Contabilidade · Anuidade do conselho de classe · Material de escritório |
-| Impostos e taxas | Imposto de renda e carnê-leão · IPTU · IPVA · Tarifas bancárias |
+| Impostos e taxas | Imposto de renda e carnê-leão · IPTU · IPVA |
+| Despesas financeiras | Juros e multas por atraso · Juros de cheque especial · Juros de cartão de crédito · Tarifas bancárias |
 | Pessoal e lazer | Lazer e viagens · Vestuário · Cuidados pessoais · Assinaturas pessoais |
 | Família | Filhos · Animais de estimação · Presentes e doações |
 
@@ -135,7 +139,7 @@ Cada sessão tem cerca de 1 hora e termina com algo testado e salvo no GitHub.
 | 13 | Revisão da semana | Testar o fluxo completo no celular e no computador |
 | 14 | Teste de isolamento (1) | Script que cria dois usuários de teste |
 | 15 | Teste de isolamento (2) | Script tenta ler, criar, alterar e apagar dados do outro, e deve falhar em tudo |
-| 16 | Teste das verificações | Tenta gravar lançamentos inválidos (valor zero, transferência sem destino, categoria de receita numa despesa) |
+| 16 | Teste das verificações | Tenta gravar lançamentos inválidos (valor zero, transferência sem destino, categoria de receita numa despesa, juros negativos, juros numa transferência, desconto maior que o valor) |
 | 17 | Correções | O que os testes 14 a 16 apontarem |
 | 18 | Tipos TypeScript | Tipos gerados a partir do banco, para as telas da F2 |
 | 19 | Folga | Atrasos de fim de ano |
@@ -143,6 +147,14 @@ Cada sessão tem cerca de 1 hora e termina com algo testado e salvo no GitHub.
 | 21 | Revisão da F1 | Conferir o critério de pronto e atualizar o ANDAMENTO.md |
 
 São 21 sessões numeradas mais as revisões semanais já previstas na rotina: cerca de 25 horas no total.
+
+## Sugestões de testadores incorporadas
+
+| Data | Testador | Sugestão | Onde |
+| --- | --- | --- | --- |
+| 23/11/2026 | André Vianna (advogado) | Registrar juros e multa ao pagar com atraso; ver quanto se paga de juros | Campos `juros`, `multa`, `desconto` e regra R12 nesta fase; grupo "Despesas financeiras" no plano de contas padrão |
+
+As demais sugestões dele (balões de ajuda, sinal e cor em positivo e negativo) entram nas telas da F2 e da F3; a sugestão de datas de vencimento fica para depois da venda.
 
 ## Pontos de atenção
 
