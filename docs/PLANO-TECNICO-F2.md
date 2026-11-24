@@ -34,7 +34,7 @@ O menu da área logada passa a ter: Painel · Lançamentos · Contas · Configur
 | Valores | Digitação no formato brasileiro (1.234,56), exibição com `Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })` | Padrão do público |
 | Sinal e cor | Receita com "+" em verde, despesa com "−" em vermelho, transferência neutra, em todas as telas | Pedido do testador; evita confusão de sinal |
 | "Hoje" | Calculado no fuso de São Paulo (`America/Sao_Paulo`) e enviado explicitamente; não usar o padrão `current_date` do banco, que segue o horário UTC e erra a data à noite | Evita lançamento caindo no dia seguinte |
-| Saldo das contas (R6) | Visão no banco (`saldos_contas`, com `security_invoker = true` para respeitar a proteção por usuário) somando saldo inicial, receitas, despesas e transferências | Um único cálculo, igual em todas as telas |
+| Saldo das contas (R6) | Função no banco `saldos_contas(data_atual, data_prevista)`, que respeita a proteção por usuário, somando saldo inicial, receitas e despesas pelo valor efetivo, e transferências | Um único cálculo, igual em todas as telas, com o "hoje" de São Paulo |
 | Ajuda | Componente `Ajuda` com o "(?)" ao lado do rótulo, abrindo um texto curto; acessível por teclado e leitor de tela | Pedido do testador |
 | Tela /entrar | Mostrar o formulário na hora; a verificação de "já logado" vai para o proxy | Achado da revisão de 23/11/2026 |
 | Testes | Vitest para as funções puras (ler valor digitado, dividir parcelas, calcular datas); testes de banco seguem em `supabase/tests` | Pegar erro de conta antes de publicar |
@@ -75,7 +75,7 @@ O menu da área logada passa a ter: Painel · Lançamentos · Contas · Configur
 
 | Migração | Conteúdo |
 | --- | --- |
-| `saldos_contas` | Visão com o saldo de hoje e o previsto de cada conta (R6), `security_invoker = true`, com `grant select` para `authenticated` |
+| `saldos_contas` | **Feito na sessão 5 como função** `saldos_contas(p_data_atual, p_data_prevista)`, e não visão: o app envia o "hoje" de São Paulo (o relógio do banco é UTC). Security invoker (RLS vale), `execute` só para `authenticated` e `service_role`. Teste em `supabase/tests/teste_saldos.sql`: 4 de 4 ok em 24/11/2026 |
 | (se necessário) | Ajustes que as telas revelarem; cada migração com `grant` explícito e `npm run tipos` em seguida |
 
 Nenhuma tabela nova é esperada: o modelo da F1 já cobre a F2.

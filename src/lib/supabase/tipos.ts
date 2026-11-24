@@ -1,6 +1,3 @@
-// Gerado automaticamente a partir do banco (npx supabase gen types --lang typescript --schema public --remote).
-// Não edite à mão: rode o comando de novo sempre que uma migração mudar as tabelas.
-
 export type Json =
   | string
   | number
@@ -379,7 +376,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      saldos_contas: {
+        Args: { p_data_atual: string; p_data_prevista: string }
+        Returns: {
+          ativa: boolean
+          conta_id: string
+          nome: string
+          saldo_atual: number
+          saldo_inicial: number
+          saldo_previsto: number
+          tipo: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
