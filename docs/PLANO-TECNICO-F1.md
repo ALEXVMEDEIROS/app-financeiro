@@ -63,7 +63,8 @@ Em cada tabela com `usuario_id`:
 - Para aplicar migrações: `npx supabase db push --remote` (sem `--remote`, a CLI 3.x tenta um banco local).
 - Para revisar: `npx supabase db advisors --remote --level info` (verificador de segurança e desempenho do Supabase) e `npx supabase db query --remote --read-only "<sql>"` para consultas que só leem.
 - **Permissões de base (sessão 7):** neste projeto, tabelas criadas por migração **não** recebem SELECT/INSERT/UPDATE/DELETE automáticos para `authenticated`. Toda tabela nova precisa de `grant ... to authenticated` explícito na própria migração, além do RLS. `perfis`: só `select` e `update (nome)`; o `plano` muda apenas pelo `service_role`. Ligações entre cadastros usam NO ACTION (não RESTRICT), para a exclusão de conta funcionar.
-- Testes do banco em `supabase/tests/` (cada um desfaz tudo ao final; rodar só com autorização do dono): `teste_cadastro_automatico.sql` e `teste_usuario_logado.sql`.
+- Testes do banco em `supabase/tests/` (cada um desfaz tudo ao final; rodar só com autorização do dono): `teste_cadastro_automatico.sql`, `teste_usuario_logado.sql` e `teste_isolamento_e_regras.sql`.
+- **Sessões 14 a 16 (24/11/2026):** `teste_isolamento_e_regras.sql`, 28 testes com dois usuários fictícios agindo como `authenticated` (como a API faz): 11 de isolamento (ler, alterar, apagar, usar e criar em nome do outro) e 17 de regras (lançamentos válidos e 16 proibidos). **28 de 28 ok**; contagens do banco iguais antes e depois. Critério de pronto da F1 atendido no banco.
 - Revisão da sessão 5 (23/11/2026): RLS ligado nas 9 tabelas, políticas só para `authenticated` com `auth.uid()` em leitura e gravação, `anon` sem permissão; verificador sem alertas de segurança. Índices das chaves compostas de `lancamentos` corrigidos.
 
 ### Cadastro de um usuário novo
