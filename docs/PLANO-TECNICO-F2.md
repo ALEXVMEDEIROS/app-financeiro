@@ -113,6 +113,10 @@ Nenhuma tabela nova é esperada: o modelo da F1 já cobre a F2.
 
 São 27 sessões numeradas, dentro das 30 horas previstas.
 
+## Proteção das páginas (corrigido na sessão 2)
+
+O proxy (`src/lib/supabase/proxy.ts`) libera só `/`, `/cadastrar`, `/entrar`, `/recuperar-senha` e `/auth/*`; **qualquer outra página exige login**. A checagem no layout da área logada não basta sozinha: páginas sem dados podiam ser entregues antes dela (achado ao publicar `/componentes`). Página pública nova precisa entrar na lista `ROTAS_PUBLICAS`.
+
 ## Pontos de atenção
 
 - **Dados reais:** no teste de aceite, o dono decide se lança dados reais na conta dele ou dados de teste. Dados reais da planilha só entram de forma organizada na F4 (importação).

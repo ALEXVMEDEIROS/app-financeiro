@@ -2,11 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./tipos";
 
-// Caminhos que exigem login. Sem sessão válida, o visitante vai para /entrar.
-const AREA_LOGADA = ["/painel", "/nova-senha"];
+// Páginas abertas a quem não está logado. TODO o resto exige login: uma página
+// nova nasce protegida, mesmo que ninguém se lembre de incluí-la aqui.
+// (A checagem no layout da área logada não basta: páginas sem dados podem ser
+// entregues antes dela rodar.)
+const ROTAS_PUBLICAS = ["/", "/cadastrar", "/entrar", "/recuperar-senha", "/auth"];
 
 function exigeLogin(caminho: string) {
-  return AREA_LOGADA.some((p) => caminho === p || caminho.startsWith(`${p}/`));
+  return !ROTAS_PUBLICAS.some((p) =>
+    p === "/" ? caminho === "/" : caminho === p || caminho.startsWith(`${p}/`),
+  );
 }
 
 // Roda a cada acesso (via src/proxy.ts): renova a sessão de login quando ela
