@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
 import { destinoSeguro } from "@/components/campo";
-import { createClient } from "@/lib/supabase/server";
 import { FormEntrar } from "./form-entrar";
 
 export const metadata: Metadata = {
@@ -11,15 +9,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Quem já está logado é levado para dentro do app pelo proxy (src/proxy.ts),
+// então esta página não precisa consultar o login antes de mostrar o formulário.
 async function Conteudo({ searchParams }: { searchParams: Promise<{ proxima?: string; senha?: string }> }) {
   const params = await searchParams;
   const proxima = destinoSeguro(params.proxima);
-
-  // Quem já está logado vai direto para dentro do app.
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (data?.claims?.sub) redirect(proxima);
-
   return (
     <>
       {params.senha === "alterada" && (
@@ -46,7 +40,7 @@ export default function PaginaEntrar({
           </Link>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Entrar</h1>
         </div>
-        <Suspense fallback={<div className="h-72 rounded-xl border border-line bg-surface" />}>
+        <Suspense fallback={<FormEntrar proxima="/painel" />}>
           <Conteudo searchParams={searchParams} />
         </Suspense>
         <p className="text-center text-sm text-muted">

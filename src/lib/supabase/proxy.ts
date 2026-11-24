@@ -47,6 +47,21 @@ export async function atualizarSessao(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const logado = Boolean(data?.claims?.sub);
 
+  // Quem já está logado não precisa ver as telas de entrar e de cadastro.
+  const caminhoAtual = request.nextUrl.pathname;
+  if (logado && (caminhoAtual === "/entrar" || caminhoAtual === "/cadastrar")) {
+    const proxima = request.nextUrl.searchParams.get("proxima");
+    const destino = request.nextUrl.clone();
+    destino.pathname =
+      proxima && proxima.startsWith("/") && !proxima.startsWith("//") && !proxima.startsWith("/\\")
+        ? proxima
+        : "/painel";
+    destino.search = "";
+    const redirecionamento = NextResponse.redirect(destino);
+    response.cookies.getAll().forEach((c) => redirecionamento.cookies.set(c));
+    return redirecionamento;
+  }
+
   if (!logado && exigeLogin(request.nextUrl.pathname)) {
     const destino = request.nextUrl.clone();
     destino.pathname = "/entrar";

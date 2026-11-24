@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { BarraInferior, BotaoNovoCabecalho, MenuPrincipal } from "@/components/navegacao";
 import { createClient } from "@/lib/supabase/server";
 import { sair } from "./acoes";
 
-// Layout da área logada. Toda página dentro de src/app/(app) passa por aqui:
-// sem sessão válida, vai para /entrar. (O proxy já faz essa proteção; esta é
-// uma segunda barreira, que não depende da lista de caminhos do proxy.)
+// Layout da área logada. A proteção principal é o proxy (src/proxy.ts), que
+// exige login em toda página que não seja pública. Aqui só montamos o visual.
 
 async function Usuario() {
   const supabase = await createClient();
@@ -23,13 +23,13 @@ async function Usuario() {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="hidden max-w-48 truncate text-sm text-muted sm:inline" title={nome}>
+      <span className="hidden max-w-40 truncate text-sm text-muted lg:inline" title={nome}>
         {nome}
       </span>
       <form action={sair}>
         <button
           type="submit"
-          className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold hover:border-muted"
+          className="min-h-10 rounded-lg border border-line px-3 text-sm font-semibold hover:border-muted"
         >
           Sair
         </button>
@@ -42,23 +42,23 @@ export default function LayoutAreaLogada({ children }: { children: React.ReactNo
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <header className="sticky top-0 z-10 border-b border-line bg-surface">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
-          <div className="flex items-center gap-6">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-3 px-4">
+          <div className="flex items-center gap-4">
             <Link href="/painel" className="font-display text-lg font-extrabold tracking-tight">
               Sobra Vida
             </Link>
-            <nav aria-label="Principal" className="flex items-center gap-4 text-sm font-semibold">
-              <Link href="/painel" className="text-fg">
-                Painel
-              </Link>
-            </nav>
+            <MenuPrincipal />
           </div>
-          <Suspense fallback={<div className="h-8 w-16" />}>
-            <Usuario />
-          </Suspense>
+          <div className="flex items-center gap-3">
+            <BotaoNovoCabecalho />
+            <Suspense fallback={<div className="h-10 w-16" />}>
+              <Usuario />
+            </Suspense>
+          </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-6 sm:pb-10">{children}</main>
+      <BarraInferior />
     </div>
   );
 }
