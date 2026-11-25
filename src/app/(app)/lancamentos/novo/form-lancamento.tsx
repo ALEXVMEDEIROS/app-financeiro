@@ -6,6 +6,9 @@ import { AvisoErro } from "@/components/campo";
 import { Ajuda } from "@/components/ui/ajuda";
 import { Botao } from "@/components/ui/botao";
 import { CampoValor, SelecaoAgrupada, type GrupoDeOpcoes } from "@/components/ui/campos";
+import { dataValida, formatarData } from "@/lib/datas";
+import { formatarMoeda } from "@/lib/dinheiro";
+import { dividirParcelas } from "@/lib/parcelas";
 import { criarLancamento, type EstadoLancamento } from "../acoes";
 
 export type Opcao = { id: string; rotulo: string };
@@ -44,6 +47,20 @@ export function FormLancamento({
   const [pagoManual, setPagoManual] = useState<boolean | null>(null);
   const pago = pagoManual ?? data <= hoje;
   const transferencia = tipo === "transferencia";
+  const [valor, setValor] = useState<number | null>(null);
+  const [qtdParcelas, setQtdParcelas] = useState("1");
+  const n = Number(qtdParcelas);
+  const parcelado = !transferencia && Number.isInteger(n) && n >= 2 && n <= 48;
+
+  // Prévia das parcelas (mesma conta que o servidor faz ao gravar).
+  const previa = useMemo(() => {
+    if (!parcelado || !valor || !dataValida(data)) return null;
+    try {
+      return dividirParcelas(valor, n, data);
+    } catch {
+      return null;
+    }
+  }, [parcelado, valor, n, data]);
 
   // Depois de um erro, vale o que o usuário tinha escolhido; senão, a sugestão do tipo.
   const voltouComErro = estado.valores?.tipo === tipo;
@@ -94,7 +111,12 @@ export function FormLancamento({
         ))}
       </fieldset>
 
-      <CampoValor id="valor" rotulo="Valor" erro={estado.erros?.valor} />
+      <CampoValor
+        id="valor"
+        rotulo={parcelado ? "Valor total da compra" : "Valor"}
+        erro={estado.erros?.valor}
+        aoMudar={setValor}
+      />
 
       {!transferencia && (
         // key: ao trocar o tipo, a lista recomeça com a sugestão daquele tipo
@@ -142,7 +164,7 @@ export function FormLancamento({
       <div className="flex flex-col gap-1.5">
         <span className="flex items-center gap-2">
           <label htmlFor="data" className="text-sm font-semibold">
-            {pago ? "Data" : "Vencimento"}
+            {parcelado ? "Vencimento da 1ª parcela" : pago ? "Data" : "Vencimento"}
           </label>
           <Ajuda titulo="Data">
             Para o que já aconteceu, a data em que aconteceu. Para o que ainda vai vencer, a data de
@@ -173,8 +195,10 @@ export function FormLancamento({
           onChange={(e) => setPagoManual(e.target.checked)}
           className="h-5 w-5 accent-[var(--accent)]"
         />
-        <span className="font-semibold">{textoPago}</span>
-        <span className="text-sm text-muted">{pago ? "" : "fica em aberto"}</span>
+        <span className="font-semibold">{parcelado ? `${textoPago} a 1ª parcela` : textoPago}</span>
+        <span className="text-sm text-muted">
+          {parcelado ? "as demais ficam em aberto" : pago ? "" : "fica em aberto"}
+        </span>
       </label>
 
       <details className="rounded-lg border border-line p-3">
@@ -182,6 +206,42 @@ export function FormLancamento({
         <div className="mt-3 flex flex-col gap-4">
           {!transferencia && (
             <>
+              <div className="flex flex-col gap-1.5">
+                <span className="flex items-center gap-2">
+                  <label htmlFor="parcelas" className="text-sm font-semibold">Parcelas</label>
+                  <Ajuda titulo="Parcelas">
+                    Digite o valor total da compra e o número de parcelas. O Sobra Vida divide o
+                    valor e cria uma parcela por mês. Os centavos que sobram da divisão vão para a
+                    última parcela.
+                  </Ajuda>
+                </span>
+                <input
+                  id="parcelas"
+                  name="parcelas"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={48}
+                  value={qtdParcelas}
+                  onChange={(e) => setQtdParcelas(e.target.value)}
+                  aria-invalid={Boolean(estado.erros?.parcelas)}
+                  className={`min-h-11 w-28 rounded-lg border bg-surface px-3 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                    estado.erros?.parcelas ? "border-neg" : "border-line"
+                  }`}
+                />
+                {estado.erros?.parcelas && <p className="text-sm text-neg">{estado.erros.parcelas}</p>}
+                {previa && (
+                  <div className="rounded-lg bg-bg p-3 text-sm" aria-live="polite">
+                    <p className="font-semibold">
+                      {previa.length}× de {formatarMoeda(previa[0].valor)}
+                      {previa.at(-1)!.valor !== previa[0].valor && ` (a última de ${formatarMoeda(previa.at(-1)!.valor)})`}
+                    </p>
+                    <p className="text-muted">
+                      De {formatarData(previa[0].vencimento)} a {formatarData(previa.at(-1)!.vencimento)}
+                    </p>
+                  </div>
+                )}
+              </div>
               <SelecaoAgrupada
                 id="centro_custo"
                 rotulo="Centro de custo"

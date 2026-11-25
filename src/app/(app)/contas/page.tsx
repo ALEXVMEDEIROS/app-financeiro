@@ -189,14 +189,15 @@ async function ListaDeContas() {
   );
 }
 
-async function AvisoLancado({ searchParams }: { searchParams: Promise<{ lancado?: string }> }) {
-  const { lancado } = await searchParams;
+async function AvisoLancado({ searchParams }: { searchParams: Promise<{ lancado?: string; parcelas?: string }> }) {
+  const { lancado, parcelas } = await searchParams;
   if (lancado !== "despesa" && lancado !== "receita" && lancado !== "transferencia") return null;
   const texto = { despesa: "Despesa salva.", receita: "Receita salva.", transferencia: "Transferência salva." }[lancado];
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-pos/10 px-4 py-3" role="status">
       <p className="font-semibold text-pos">
-        {texto} Os saldos abaixo já estão atualizados.
+        {texto}
+        {Number(parcelas) > 1 && ` Foram criadas ${Number(parcelas)} parcelas, uma por mês.`} Os saldos abaixo já estão atualizados.
       </p>
       <Link href="/lancamentos/novo" className="text-sm font-semibold text-accent underline-offset-4 hover:underline">
         Lançar outro
@@ -205,7 +206,11 @@ async function AvisoLancado({ searchParams }: { searchParams: Promise<{ lancado?
   );
 }
 
-export default function PaginaContas({ searchParams }: { searchParams: Promise<{ lancado?: string }> }) {
+export default function PaginaContas({
+  searchParams,
+}: {
+  searchParams: Promise<{ lancado?: string; parcelas?: string }>;
+}) {
   return (
     <div className="flex flex-col gap-6">
       <Suspense fallback={null}>

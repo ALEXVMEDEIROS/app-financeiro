@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { dataValida, hojeEmSaoPaulo } from "@/lib/datas";
 import { lerValor } from "@/lib/dinheiro";
 import { mensagemDeErro } from "@/lib/erros-banco";
+import { dividirParcelas } from "@/lib/parcelas";
 import { createClient } from "@/lib/supabase/server";
 
 export type EstadoLancamento = {
@@ -15,6 +16,7 @@ export type EstadoLancamento = {
     destino?: string;
     data?: string;
     observacao?: string;
+    parcelas?: string;
   };
   /** Escolhas devolvidas em caso de erro, para o formulário não perdê-las. */
   valores?: {
@@ -46,6 +48,8 @@ export async function criarLancamento(
   const pago = formData.get("pago") === "on";
   const observacao = campo("observacao").trim();
   const depois = campo("depois");
+  const textoParcelas = campo("parcelas").trim();
+  const parcelas = textoParcelas === "" ? 1 : Number(textoParcelas);
 
   const valores = {
     tipo,
@@ -72,22 +76,44 @@ export async function criarLancamento(
   }
   if (!dataValida(data)) erros.data = "Escolha uma data válida.";
   if (observacao.length > 500) erros.observacao = "Use no máximo 500 caracteres.";
+  if (!Number.isInteger(parcelas) || parcelas < 1 || parcelas > 48) {
+    erros.parcelas = "Informe de 1 a 48 parcelas.";
+  } else if (transferencia && parcelas > 1) {
+    erros.parcelas = "Transferências não podem ser parceladas.";
+  } else if (parcelas > 1 && valor !== null && Math.round(valor * 100) < parcelas) {
+    erros.parcelas = "O valor é pequeno demais para tantas parcelas.";
+  }
   if (Object.keys(erros).length > 0) return { erros, valores };
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("lancamentos").insert({
+  const base = {
     tipo,
-    valor: valor as number,
     categoria_id: transferencia ? null : valores.categoria,
     conta_id: valores.conta,
     conta_destino_id: transferencia ? valores.destino : null,
     data_lancamento: hojeEmSaoPaulo(),
-    data_vencimento: data,
-    data_pagamento: pago ? data : null,
     centro_custo_id: transferencia ? null : opcional(valores.centro),
     forma_pagamento_id: transferencia ? null : opcional(valores.forma),
     observacao: observacao || null,
-  });
+  };
+
+  // R11: valor total dividido em centavos, última parcela com a diferença,
+  // vencimentos mensais; só a primeira pode nascer paga.
+  const grupo = crypto.randomUUID();
+  const linhas =
+    parcelas > 1
+      ? dividirParcelas(valor as number, parcelas, data).map((p) => ({
+          ...base,
+          valor: p.valor,
+          data_vencimento: p.vencimento,
+          data_pagamento: pago && p.numero === 1 ? p.vencimento : null,
+          parcela_num: p.numero,
+          parcela_total: p.total,
+          grupo_parcelas_id: grupo,
+        }))
+      : [{ ...base, valor: valor as number, data_vencimento: data, data_pagamento: pago ? data : null }];
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("lancamentos").insert(linhas);
 
   if (error) {
     return {
@@ -102,6 +128,7 @@ export async function criarLancamento(
   }
 
   // "n" muda a cada salvamento, para o formulário recomeçar limpo.
-  if (depois === "outro") redirect(`/lancamentos/novo?salvo=${tipo}&tipo=${tipo}&n=${Date.now()}`);
-  redirect(`/contas?lancado=${tipo}`);
+  const sufixo = parcelas > 1 ? `&parcelas=${parcelas}` : "";
+  if (depois === "outro") redirect(`/lancamentos/novo?salvo=${tipo}&tipo=${tipo}&n=${Date.now()}${sufixo}`);
+  redirect(`/contas?lancado=${tipo}${sufixo}`);
 }

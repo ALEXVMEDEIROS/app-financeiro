@@ -39,6 +39,7 @@ export function CampoValor({
   erro,
   dica,
   ajuda,
+  aoMudar,
 }: {
   id: string;
   rotulo: string;
@@ -46,6 +47,8 @@ export function CampoValor({
   erro?: string;
   dica?: string;
   ajuda?: React.ReactNode;
+  /** Avisa o valor lido (ou null) a cada mudança, para prévias como a de parcelas. */
+  aoMudar?: (valor: number | null) => void;
 }) {
   const [texto, setTexto] = useState(valorInicial != null ? formatarNumero(valorInicial) : "");
   return (
@@ -60,7 +63,10 @@ export function CampoValor({
           autoComplete="off"
           placeholder="0,00"
           value={texto}
-          onChange={(e) => setTexto(e.target.value)}
+          onChange={(e) => {
+            setTexto(e.target.value);
+            aoMudar?.(lerValor(e.target.value));
+          }}
           onBlur={() => {
             const v = lerValor(texto);
             if (v != null) setTexto(formatarNumero(v));

@@ -8,7 +8,7 @@ import { FormLancamento, type CategoriaOpcao, type Sugestoes, type Tipo } from "
 
 export const metadata: Metadata = { title: "Novo lançamento · Sobra Vida", robots: { index: false } };
 
-type Parametros = Promise<{ salvo?: string; tipo?: string; n?: string }>;
+type Parametros = Promise<{ salvo?: string; tipo?: string; n?: string; parcelas?: string }>;
 const TIPOS: Tipo[] = ["despesa", "receita", "transferencia"];
 const NOME_SALVO: Record<Tipo, string> = {
   despesa: "Despesa salva.",
@@ -88,7 +88,8 @@ async function Conteudo({ searchParams }: { searchParams: Parametros }) {
     <>
       {salvo && (
         <p className="rounded-lg bg-pos/10 px-4 py-3 font-semibold text-pos" role="status">
-          {NOME_SALVO[salvo]} Pode lançar o próximo.
+          {NOME_SALVO[salvo]}
+          {Number(params.parcelas) > 1 && ` Foram criadas ${Number(params.parcelas)} parcelas.`} Pode lançar o próximo.
         </p>
       )}
       <FormLancamento
