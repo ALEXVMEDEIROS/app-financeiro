@@ -117,6 +117,10 @@ São 27 sessões numeradas, dentro das 30 horas previstas.
 
 Com `cacheComponents`, o Next.js recusa no build uma página que usa a data atual durante a pré-montagem. Todo componente que chamar `hojeEmSaoPaulo()` (ou `new Date()`) precisa de `await connection()` (de `next/server`) antes, dentro de um `<Suspense>`.
 
+## Endereço atual no menu (sessão 7)
+
+Em rotas com parte variável (ex.: `/contas/[id]`), componentes de cliente que leem o endereço (`usePathname`) precisam estar dentro de `<Suspense>`. O menu (`src/components/navegacao.tsx`) já faz isso: mostra os itens sem destaque até o endereço ser lido.
+
 ## Proteção das páginas (corrigido na sessão 2)
 
 O proxy (`src/lib/supabase/proxy.ts`) libera só `/`, `/cadastrar`, `/entrar`, `/recuperar-senha` e `/auth/*`; **qualquer outra página exige login**. A checagem no layout da área logada não basta sozinha: páginas sem dados podiam ser entregues antes dela (achado ao publicar `/componentes`). Página pública nova precisa entrar na lista `ROTAS_PUBLICAS`.
