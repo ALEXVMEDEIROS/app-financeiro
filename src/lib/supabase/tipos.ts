@@ -108,34 +108,43 @@ export type Database = {
       }
       contas_financeiras: {
         Row: {
+          agencia: string | null
           ativa: boolean
+          codigo_banco: string | null
           criado_em: string
           data_saldo_inicial: string
           id: string
           instituicao: string | null
           nome: string
+          numero_conta: string | null
           saldo_inicial: number
           tipo: string
           usuario_id: string
         }
         Insert: {
+          agencia?: string | null
           ativa?: boolean
+          codigo_banco?: string | null
           criado_em?: string
           data_saldo_inicial?: string
           id?: string
           instituicao?: string | null
           nome: string
+          numero_conta?: string | null
           saldo_inicial?: number
           tipo: string
           usuario_id?: string
         }
         Update: {
+          agencia?: string | null
           ativa?: boolean
+          codigo_banco?: string | null
           criado_em?: string
           data_saldo_inicial?: string
           id?: string
           instituicao?: string | null
           nome?: string
+          numero_conta?: string | null
           saldo_inicial?: number
           tipo?: string
           usuario_id?: string

@@ -17,7 +17,7 @@ async function Edicao({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
   const { data: conta } = await supabase
     .from("contas_financeiras")
-    .select("id, instituicao, nome, tipo, saldo_inicial, data_saldo_inicial, ativa")
+    .select("id, instituicao, codigo_banco, agencia, numero_conta, nome, tipo, saldo_inicial, data_saldo_inicial, ativa")
     .eq("id", id)
     .maybeSingle();
 
@@ -40,6 +40,9 @@ async function Edicao({ params }: { params: Promise<{ id: string }> }) {
         inicial={{
           id: conta.id,
           instituicao: conta.instituicao,
+          codigo_banco: conta.codigo_banco,
+          agencia: conta.agencia,
+          numero_conta: conta.numero_conta,
           nome: conta.nome,
           tipo: conta.tipo,
           saldo: Number(conta.saldo_inicial),

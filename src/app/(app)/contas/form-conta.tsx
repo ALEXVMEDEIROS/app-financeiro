@@ -6,11 +6,15 @@ import { AvisoErro, Campo } from "@/components/campo";
 import { Ajuda } from "@/components/ui/ajuda";
 import { Botao } from "@/components/ui/botao";
 import { CampoData, CampoValor, SelecaoAgrupada } from "@/components/ui/campos";
+import { codigoDoBanco } from "@/lib/bancos";
 import { excluirConta, salvarConta, type EstadoConta, type EstadoExcluir } from "./acoes";
 
 export type DadosConta = {
   id?: string;
   instituicao?: string | null;
+  codigo_banco?: string | null;
+  agencia?: string | null;
+  numero_conta?: string | null;
   nome?: string;
   tipo?: string;
   saldo?: number;
@@ -36,6 +40,11 @@ export function FormConta({
   const [estado, acao, salvando] = useActionState(salvarConta, {} as EstadoConta);
   const editando = Boolean(inicial.id);
   const erroInstituicao = estado.erros?.instituicao;
+  const [codigo, setCodigo] = useState(inicial.codigo_banco ?? "");
+  const temDadosBancarios = Boolean(
+    inicial.codigo_banco || inicial.agencia || inicial.numero_conta ||
+      estado.erros?.codigo_banco || estado.erros?.agencia || estado.erros?.numero_conta,
+  );
 
   return (
     <form action={acao} noValidate className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-5">
@@ -56,6 +65,10 @@ export function FormConta({
           list="instituicoes-existentes"
           autoComplete="off"
           defaultValue={inicial.instituicao ?? ""}
+          onBlur={(e) => {
+            // Sugere o código do banco se ainda estiver vazio.
+            if (!codigo) setCodigo(codigoDoBanco(e.target.value) ?? "");
+          }}
           placeholder="Ex.: Santander"
           aria-invalid={Boolean(erroInstituicao)}
           aria-describedby={erroInstituicao ? "instituicao-ajuda" : undefined}
@@ -72,6 +85,41 @@ export function FormConta({
           <p id="instituicao-ajuda" className="text-sm text-neg">{erroInstituicao}</p>
         )}
       </div>
+      <details open={temDadosBancarios} className="rounded-lg border border-line p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-accent">
+          Dados bancários <span className="font-normal text-muted">(opcional)</span>
+        </summary>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <CampoTexto
+            id="codigo_banco"
+            rotulo="Código do banco"
+            valor={codigo}
+            aoMudar={setCodigo}
+            placeholder="033"
+            maxLength={3}
+            erro={estado.erros?.codigo_banco}
+          />
+          <CampoTexto
+            id="agencia"
+            rotulo="Agência"
+            valorInicial={inicial.agencia ?? ""}
+            placeholder="1234"
+            maxLength={10}
+            erro={estado.erros?.agencia}
+          />
+          <CampoTexto
+            id="numero_conta"
+            rotulo="Número da conta"
+            valorInicial={inicial.numero_conta ?? ""}
+            placeholder="01234567-8"
+            maxLength={20}
+            erro={estado.erros?.numero_conta}
+          />
+        </div>
+        <p className="mt-2 text-xs text-muted">
+          Só para identificar a conta. O Sobra Vida não acessa o banco nem movimenta dinheiro.
+        </p>
+      </details>
       <Campo
         id="nome"
         rotulo="Nome da conta"
@@ -116,6 +164,48 @@ export function FormConta({
         </Link>
       </div>
     </form>
+  );
+}
+
+/** Campo curto numérico (código, agência, conta), com teclado numérico no celular. */
+function CampoTexto({
+  id,
+  rotulo,
+  valor,
+  valorInicial,
+  aoMudar,
+  placeholder,
+  maxLength,
+  erro,
+}: {
+  id: string;
+  rotulo: string;
+  valor?: string;
+  valorInicial?: string;
+  aoMudar?: (v: string) => void;
+  placeholder?: string;
+  maxLength?: number;
+  erro?: string;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <label htmlFor={id} className="text-sm font-semibold">{rotulo}</label>
+      <input
+        id={id}
+        name={id}
+        inputMode="numeric"
+        autoComplete="off"
+        {...(aoMudar ? { value: valor, onChange: (e) => aoMudar(e.target.value) } : { defaultValue: valorInicial })}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        aria-invalid={Boolean(erro)}
+        aria-describedby={erro ? `${id}-ajuda` : undefined}
+        className={`min-h-11 w-full rounded-lg border bg-surface px-3 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+          erro ? "border-neg" : "border-line"
+        }`}
+      />
+      {erro && <p id={`${id}-ajuda`} className="text-sm text-neg">{erro}</p>}
+    </div>
   );
 }
 

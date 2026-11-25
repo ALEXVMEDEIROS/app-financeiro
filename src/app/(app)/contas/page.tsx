@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { Ajuda } from "@/components/ui/ajuda";
 import { Valor } from "@/components/ui/valor";
+import { resumoDadosBancarios } from "@/lib/bancos";
 import { formatarData, hojeEmSaoPaulo, intervaloDoMes } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,6 +20,7 @@ const NOME_TIPO: Record<string, string> = {
 type LinhaSaldo = {
   conta_id: string;
   instituicao: string | null;
+  dados?: string;
   nome: string;
   tipo: string;
   ativa: boolean;
@@ -63,6 +65,7 @@ function CartaoConta({
         <div className="min-w-0">
           <p className="truncate font-semibold" title={titulo}>{titulo}</p>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">{NOME_TIPO[conta.tipo] ?? conta.tipo}</p>
+          {conta.dados && <p className="truncate text-xs text-muted tabular-nums">{conta.dados}</p>}
         </div>
         <Valor valor={Number(conta.saldo_atual)} className="text-lg" />
       </div>
@@ -109,7 +112,12 @@ async function ListaDeContas() {
     );
   }
 
-  const contas = (data ?? []) as LinhaSaldo[];
+  // Dados bancários (código, agência, conta) vêm da própria tabela de contas.
+  const { data: detalhes } = await supabase
+    .from("contas_financeiras")
+    .select("id, codigo_banco, agencia, numero_conta");
+  const resumoPorConta = new Map((detalhes ?? []).map((d) => [d.id, resumoDadosBancarios(d)]));
+  const contas = ((data ?? []) as LinhaSaldo[]).map((c) => ({ ...c, dados: resumoPorConta.get(c.conta_id) }));
   const ativas = contas.filter((c) => c.ativa);
   const desativadas = contas.filter((c) => !c.ativa);
 
