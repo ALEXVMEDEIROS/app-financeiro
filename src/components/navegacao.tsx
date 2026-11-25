@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 
 // Menu da área logada. No computador fica no cabeçalho; no celular vira uma
 // barra fixa no rodapé, com o botão "+" (novo lançamento) no meio.
@@ -37,9 +38,24 @@ function ativo(caminho: string, href: string) {
   return caminho === href || caminho.startsWith(`${href}/`);
 }
 
+// O endereço atual (usePathname) só é conhecido na hora do acesso. Enquanto isso,
+// o menu aparece sem item destacado (fallback do Suspense); o Next.js exige isso
+// em páginas com parte variável no endereço, como /contas/[id].
+
 /** Menu do cabeçalho (computador e tablet). */
 export function MenuPrincipal() {
-  const caminho = usePathname();
+  return (
+    <Suspense fallback={<MenuVisual caminho="" />}>
+      <MenuComEndereco />
+    </Suspense>
+  );
+}
+
+function MenuComEndereco() {
+  return <MenuVisual caminho={usePathname()} />;
+}
+
+function MenuVisual({ caminho }: { caminho: string }) {
   return (
     <nav aria-label="Principal" className="hidden items-center gap-1 sm:flex">
       {ITENS.map((i) => (
@@ -72,7 +88,18 @@ export function BotaoNovoCabecalho() {
 
 /** Barra fixa no rodapé do celular, com o "+" no meio. */
 export function BarraInferior() {
-  const caminho = usePathname();
+  return (
+    <Suspense fallback={<BarraVisual caminho="" />}>
+      <BarraComEndereco />
+    </Suspense>
+  );
+}
+
+function BarraComEndereco() {
+  return <BarraVisual caminho={usePathname()} />;
+}
+
+function BarraVisual({ caminho }: { caminho: string }) {
   const [a, b, c, d] = ITENS;
   const link = (i: Item) => (
     <Link

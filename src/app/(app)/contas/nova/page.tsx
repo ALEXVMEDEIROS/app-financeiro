@@ -1,13 +1,24 @@
 import type { Metadata } from "next";
-import { EmConstrucao } from "@/components/em-construcao";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { hojeEmSaoPaulo } from "@/lib/datas";
+import { FormConta } from "../form-conta";
 
 export const metadata: Metadata = { title: "Nova conta · Sobra Vida", robots: { index: false } };
 
+async function Formulario() {
+  await connection();
+  return <FormConta inicial={{}} hoje={hojeEmSaoPaulo()} />;
+}
+
 export default function PaginaNovaConta() {
   return (
-    <EmConstrucao
-      titulo="Nova conta"
-      texto="Aqui você vai informar o nome da conta, o tipo (banco, corretora, carteira ou caixa) e o saldo de hoje."
-    />
+    <div className="flex max-w-xl flex-col gap-4">
+      <h1 className="font-display text-3xl font-extrabold tracking-tight">Nova conta</h1>
+      <p className="text-muted">Informe o saldo de hoje. Os lançamentos vão atualizá-lo daqui para frente.</p>
+      <Suspense fallback={<p className="text-muted">Carregando…</p>}>
+        <Formulario />
+      </Suspense>
+    </div>
   );
 }

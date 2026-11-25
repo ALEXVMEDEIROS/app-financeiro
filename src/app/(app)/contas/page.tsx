@@ -27,7 +27,11 @@ type LinhaSaldo = {
 
 function CartaoConta({ conta, fimDoMes }: { conta: LinhaSaldo; fimDoMes: string }) {
   return (
-    <li className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4">
+    <li>
+      <Link
+        href={`/contas/${conta.conta_id}`}
+        className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4 hover:border-muted focus-visible:outline-2 focus-visible:outline-accent"
+      >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-semibold" title={conta.nome}>{conta.nome}</p>
@@ -39,6 +43,7 @@ function CartaoConta({ conta, fimDoMes }: { conta: LinhaSaldo; fimDoMes: string 
         <span>Previsto em {formatarData(fimDoMes).slice(0, 5)}</span>
         <Valor valor={Number(conta.saldo_previsto)} className="text-sm" />
       </p>
+      </Link>
     </li>
   );
 }
