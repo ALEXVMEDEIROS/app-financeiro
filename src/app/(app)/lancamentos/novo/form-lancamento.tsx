@@ -9,12 +9,32 @@ import { CampoValor, SelecaoAgrupada, type GrupoDeOpcoes } from "@/components/ui
 import { dataValida, formatarData } from "@/lib/datas";
 import { formatarMoeda } from "@/lib/dinheiro";
 import { dividirParcelas } from "@/lib/parcelas";
-import { criarLancamento, type EstadoLancamento } from "../acoes";
+import { criarLancamento, editarLancamento, type EstadoLancamento } from "../acoes";
 
 export type Opcao = { id: string; rotulo: string };
 export type CategoriaOpcao = { id: string; nome: string; grupo: string; natureza: "receita" | "despesa"; ordem: number };
 export type Tipo = "despesa" | "receita" | "transferencia";
 /** Últimas escolhas por tipo, sugeridas ao abrir o formulário. */
+/** Dados de um lançamento existente: com isso, o formulário edita em vez de criar. */
+export type Edicao = {
+  id: string;
+  voltar: string;
+  /** Onde o "Cancelar" leva (a tela do lançamento). */
+  cancelar: string;
+  valor: number;
+  data: string;
+  pago: boolean;
+  categoria?: string;
+  conta: string;
+  destino?: string;
+  centro?: string;
+  forma?: string;
+  pessoa?: string;
+  observacao?: string;
+  /** "2/3" quando é uma parcela. */
+  parcela?: string;
+};
+
 export type Sugestoes = Partial<Record<Tipo, { categoria?: string; conta?: string; destino?: string }>>;
 
 const TIPOS: { valor: Tipo; rotulo: string; cor: string }[] = [
@@ -32,6 +52,7 @@ export function FormLancamento({
   formas,
   pessoas,
   sugestoes,
+  edicao,
 }: {
   hoje: string;
   tipoInicial: Tipo;
@@ -42,18 +63,19 @@ export function FormLancamento({
   /** Nomes das pessoas ativas, para completar o campo "Pago a" / "Recebido de". */
   pessoas: string[];
   sugestoes: Sugestoes;
+  edicao?: Edicao;
 }) {
-  const [estado, acao, salvando] = useActionState(criarLancamento, {} as EstadoLancamento);
+  const [estado, acao, salvando] = useActionState(edicao ? editarLancamento : criarLancamento, {} as EstadoLancamento);
   const [tipo, setTipo] = useState<Tipo>(tipoInicial);
-  const [data, setData] = useState(hoje);
+  const [data, setData] = useState(edicao?.data ?? hoje);
   // "Já pago" acompanha a data (hoje ou antes = pago) até o usuário mexer nele.
   const [pagoManual, setPagoManual] = useState<boolean | null>(null);
   const pago = pagoManual ?? data <= hoje;
   const transferencia = tipo === "transferencia";
-  const [valor, setValor] = useState<number | null>(null);
+  const [valor, setValor] = useState<number | null>(edicao?.valor ?? null);
   const [qtdParcelas, setQtdParcelas] = useState("1");
   const n = Number(qtdParcelas);
-  const parcelado = !transferencia && Number.isInteger(n) && n >= 2 && n <= 48;
+  const parcelado = !edicao && !transferencia && Number.isInteger(n) && n >= 2 && n <= 48;
 
   // Prévia das parcelas (mesma conta que o servidor faz ao gravar).
   const previa = useMemo(() => {
@@ -67,7 +89,7 @@ export function FormLancamento({
 
   // Depois de um erro, vale o que o usuário tinha escolhido; senão, a sugestão do tipo.
   const voltouComErro = estado.valores?.tipo === tipo;
-  const sugestao = sugestoes[tipo] ?? {};
+  const sugestao = edicao ?? sugestoes[tipo] ?? {};
   const inicial = {
     categoria: voltouComErro ? estado.valores?.categoria : sugestao.categoria,
     conta: voltouComErro ? estado.valores?.conta : sugestao.conta ?? (contas.length === 1 ? contas[0].id : undefined),
@@ -87,11 +109,29 @@ export function FormLancamento({
       .map(([grupo, g]) => ({ grupo, opcoes: g.opcoes }));
   }, [categorias, tipo, transferencia]);
 
+  // Depois de um erro valem os valores devolvidos; senão, os do lançamento em edição.
+  const textoInicial = (campo: "pessoa" | "observacao" | "centro" | "forma") =>
+    estado.valores ? estado.valores[campo] : edicao?.[campo];
+
   const opcoesContas = [{ grupo: "", opcoes: contas.map((c) => ({ valor: c.id, rotulo: c.rotulo })) }];
   const textoPago = tipo === "despesa" ? "Já paguei" : tipo === "receita" ? "Já recebi" : "Já foi feita";
 
   return (
     <form action={acao} noValidate className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-5">
+      {edicao && (
+        <>
+          <input type="hidden" name="id" value={edicao.id} />
+          <input type="hidden" name="voltar" value={edicao.voltar} />
+          <input type="hidden" name="tipo" value={tipo} />
+          <p className="text-sm text-muted">
+            <span className={`mr-2 rounded px-2 py-1 text-sm font-semibold ${TIPOS.find((t) => t.valor === tipo)?.cor}`}>
+              {TIPOS.find((t) => t.valor === tipo)?.rotulo}
+            </span>
+            {edicao.parcela && <>Parcela {edicao.parcela}: a alteração vale só para esta parcela.</>}
+          </p>
+        </>
+      )}
+      {!edicao && (
       <fieldset className="grid grid-cols-3 gap-1 rounded-lg bg-bg p-1">
         <legend className="sr-only">Tipo do lançamento</legend>
         {TIPOS.map((t) => (
@@ -113,10 +153,12 @@ export function FormLancamento({
           </label>
         ))}
       </fieldset>
+      )}
 
       <CampoValor
         id="valor"
         rotulo={parcelado ? "Valor total da compra" : "Valor"}
+        valorInicial={edicao?.valor}
         erro={estado.erros?.valor}
         aoMudar={setValor}
       />
@@ -167,7 +209,7 @@ export function FormLancamento({
       <div className="flex flex-col gap-1.5">
         <span className="flex items-center gap-2">
           <label htmlFor="data" className="text-sm font-semibold">
-            {parcelado ? "Vencimento da 1ª parcela" : pago ? "Data" : "Vencimento"}
+            {parcelado ? "Vencimento da 1ª parcela" : edicao ? (edicao.pago ? "Data" : "Vencimento") : pago ? "Data" : "Vencimento"}
           </label>
           <Ajuda titulo="Data">
             Para o que já aconteceu, a data em que aconteceu. Para o que ainda vai vencer, a data de
@@ -190,6 +232,7 @@ export function FormLancamento({
         {estado.erros?.data && <p className="text-sm text-neg">{estado.erros.data}</p>}
       </div>
 
+      {!edicao && (
       <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3">
         <input
           type="checkbox"
@@ -203,10 +246,21 @@ export function FormLancamento({
           {parcelado ? "as demais ficam em aberto" : pago ? "" : "fica em aberto"}
         </span>
       </label>
+      )}
 
       {/* Abre sozinho quando o erro está num campo daqui de dentro, para ele não ficar escondido. */}
       <details
-        open={Boolean(estado.erros?.parcelas || estado.erros?.pessoa || estado.erros?.observacao) || undefined}
+        open={
+          Boolean(
+            estado.erros?.parcelas ||
+              estado.erros?.pessoa ||
+              estado.erros?.observacao ||
+              edicao?.pessoa ||
+              edicao?.centro ||
+              edicao?.forma ||
+              edicao?.observacao,
+          ) || undefined
+        }
         className="rounded-lg border border-line p-3"
       >
         <summary className="cursor-pointer text-sm font-semibold text-accent">
@@ -234,7 +288,7 @@ export function FormLancamento({
                   list="lista-pessoas"
                   autoComplete="off"
                   maxLength={120}
-                  defaultValue={estado.valores?.pessoa}
+                  defaultValue={textoInicial("pessoa")}
                   placeholder="Opcional"
                   aria-invalid={Boolean(estado.erros?.pessoa)}
                   className={`min-h-11 rounded-lg border bg-surface px-3 outline-none focus-visible:ring-2 focus-visible:ring-accent ${
@@ -248,6 +302,7 @@ export function FormLancamento({
                 </datalist>
                 {estado.erros?.pessoa && <p className="text-sm text-neg">{estado.erros.pessoa}</p>}
               </div>
+              {!edicao && (
               <div className="flex flex-col gap-1.5">
                 <span className="flex items-center gap-2">
                   <label htmlFor="parcelas" className="text-sm font-semibold">Parcelas</label>
@@ -284,12 +339,13 @@ export function FormLancamento({
                   </div>
                 )}
               </div>
+              )}
               <SelecaoAgrupada
                 id="centro_custo"
                 rotulo="Centro de custo"
                 vazio="Nenhum"
                 opcional
-                valorInicial={estado.valores?.centro}
+                valorInicial={textoInicial("centro")}
                 grupos={[{ grupo: "", opcoes: centros.map((c) => ({ valor: c.id, rotulo: c.rotulo })) }]}
                 ajuda={<Ajuda titulo="Centro de custo">Separa o que é de casa e o que é do trabalho nos relatórios.</Ajuda>}
               />
@@ -298,7 +354,7 @@ export function FormLancamento({
                 rotulo="Forma de pagamento"
                 vazio="Não informar"
                 opcional
-                valorInicial={estado.valores?.forma}
+                valorInicial={textoInicial("forma")}
                 grupos={[{ grupo: "", opcoes: formas.map((f) => ({ valor: f.id, rotulo: f.rotulo })) }]}
               />
             </>
@@ -310,7 +366,7 @@ export function FormLancamento({
               name="observacao"
               rows={2}
               maxLength={500}
-              defaultValue={estado.valores?.observacao}
+              defaultValue={textoInicial("observacao")}
               className="rounded-lg border border-line bg-surface px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
             {estado.erros?.observacao && <p className="text-sm text-neg">{estado.erros.observacao}</p>}
@@ -320,6 +376,16 @@ export function FormLancamento({
 
       <AvisoErro mensagem={estado.mensagem} />
 
+      {edicao ? (
+        <div className="flex flex-wrap gap-3 pt-1">
+          <Botao type="submit" disabled={salvando} className="flex-1 sm:flex-none">
+            {salvando ? "Salvando…" : "Salvar alterações"}
+          </Botao>
+          <Link href={edicao.cancelar} className="inline-flex min-h-11 items-center px-2 font-semibold text-muted">
+            Cancelar
+          </Link>
+        </div>
+      ) : (
       <div className="flex flex-wrap gap-3 pt-1">
         <Botao type="submit" name="depois" value="contas" disabled={salvando} className="flex-1 sm:flex-none">
           {salvando ? "Salvando…" : "Salvar"}
@@ -331,6 +397,7 @@ export function FormLancamento({
           Cancelar
         </Link>
       </div>
+      )}
     </form>
   );
 }

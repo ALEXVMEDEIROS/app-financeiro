@@ -26,6 +26,7 @@ type Parametros = Promise<{ mes?: string; tipo?: string; aberto?: string; busca?
 const AVISOS: Record<string, string> = {
   quitado: "Pagamento registrado. Os saldos já estão atualizados.",
   desfeito: "Pagamento desfeito: o lançamento voltou a ficar em aberto.",
+  editado: "Alterações salvas.",
 };
 
 type Linha = {

@@ -138,6 +138,13 @@ async function Detalhe({ params, searchParams }: Props) {
         </section>
       )}
 
+      <Link
+        href={`/lancamentos/${l.id}/editar?voltar=${encodeURIComponent(voltar)}`}
+        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-line bg-surface px-4 font-semibold hover:border-muted"
+      >
+        Editar lançamento
+      </Link>
+
       <Link href={voltar} className="inline-flex min-h-11 items-center font-semibold text-accent">
         ← Voltar para a lista
       </Link>
