@@ -4,19 +4,43 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { hojeEmSaoPaulo } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
-import { FormLancamento, type CategoriaOpcao } from "./form-lancamento";
+import { FormLancamento, type CategoriaOpcao, type Sugestoes, type Tipo } from "./form-lancamento";
 
 export const metadata: Metadata = { title: "Novo lançamento · Sobra Vida", robots: { index: false } };
 
-async function Conteudo() {
+type Parametros = Promise<{ salvo?: string; tipo?: string; n?: string }>;
+const TIPOS: Tipo[] = ["despesa", "receita", "transferencia"];
+const NOME_SALVO: Record<Tipo, string> = {
+  despesa: "Despesa salva.",
+  receita: "Receita salva.",
+  transferencia: "Transferência salva.",
+};
+
+async function Conteudo({ searchParams }: { searchParams: Parametros }) {
   await connection();
+  const params = await searchParams;
+  const tipoInicial = TIPOS.includes(params.tipo as Tipo) ? (params.tipo as Tipo) : "despesa";
+  const salvo = TIPOS.includes(params.salvo as Tipo) ? (params.salvo as Tipo) : null;
+
   const supabase = await createClient();
-  const [contas, grupos, categorias, centros, formas] = await Promise.all([
+  const ultimo = (tipo: Tipo) =>
+    supabase
+      .from("lancamentos")
+      .select("categoria_id, conta_id, conta_destino_id")
+      .eq("tipo", tipo)
+      .order("criado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+  const [contas, grupos, categorias, centros, formas, ultDespesa, ultReceita, ultTransf] = await Promise.all([
     supabase.from("contas_financeiras").select("id, instituicao, nome").eq("ativa", true),
     supabase.from("grupos").select("id, nome, natureza, ordem").eq("ativo", true),
     supabase.from("categorias").select("id, nome, grupo_id").eq("ativa", true),
     supabase.from("centros_custo").select("id, nome").eq("ativo", true),
     supabase.from("formas_pagamento").select("id, nome").eq("ativa", true),
+    ultimo("despesa"),
+    ultimo("receita"),
+    ultimo("transferencia"),
   ]);
 
   const listaContas = (contas.data ?? [])
@@ -43,23 +67,50 @@ async function Conteudo() {
     })
     .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt-BR"));
 
+  // Só sugere o que ainda está ativo (conta ou categoria desativada não volta).
+  const contasAtivas = new Set(listaContas.map((c) => c.id));
+  const categoriasAtivas = new Set(listaCategorias.map((c) => c.id));
+  const sugerir = (l: { categoria_id: string | null; conta_id: string; conta_destino_id: string | null } | null) =>
+    l
+      ? {
+          categoria: l.categoria_id && categoriasAtivas.has(l.categoria_id) ? l.categoria_id : undefined,
+          conta: contasAtivas.has(l.conta_id) ? l.conta_id : undefined,
+          destino: l.conta_destino_id && contasAtivas.has(l.conta_destino_id) ? l.conta_destino_id : undefined,
+        }
+      : undefined;
+  const sugestoes: Sugestoes = {
+    despesa: sugerir(ultDespesa.data),
+    receita: sugerir(ultReceita.data),
+    transferencia: sugerir(ultTransf.data),
+  };
+
   return (
-    <FormLancamento
-      hoje={hojeEmSaoPaulo()}
-      contas={listaContas}
-      categorias={listaCategorias}
-      centros={(centros.data ?? []).map((c) => ({ id: c.id, rotulo: c.nome }))}
-      formas={(formas.data ?? []).map((f) => ({ id: f.id, rotulo: f.nome }))}
-    />
+    <>
+      {salvo && (
+        <p className="rounded-lg bg-pos/10 px-4 py-3 font-semibold text-pos" role="status">
+          {NOME_SALVO[salvo]} Pode lançar o próximo.
+        </p>
+      )}
+      <FormLancamento
+        key={params.n ?? "novo"}
+        hoje={hojeEmSaoPaulo()}
+        tipoInicial={tipoInicial}
+        contas={listaContas}
+        categorias={listaCategorias}
+        centros={(centros.data ?? []).map((c) => ({ id: c.id, rotulo: c.nome }))}
+        formas={(formas.data ?? []).map((f) => ({ id: f.id, rotulo: f.nome }))}
+        sugestoes={sugestoes}
+      />
+    </>
   );
 }
 
-export default function PaginaNovoLancamento() {
+export default function PaginaNovoLancamento({ searchParams }: { searchParams: Parametros }) {
   return (
     <div className="flex max-w-xl flex-col gap-4">
       <h1 className="font-display text-3xl font-extrabold tracking-tight">Novo lançamento</h1>
       <Suspense fallback={<p className="text-muted">Carregando…</p>}>
-        <Conteudo />
+        <Conteudo searchParams={searchParams} />
       </Suspense>
     </div>
   );

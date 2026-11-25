@@ -8,46 +8,68 @@ import { createClient } from "@/lib/supabase/server";
 
 export type EstadoLancamento = {
   mensagem?: string;
-  erros?: { valor?: string; categoria?: string; conta?: string; data?: string; observacao?: string };
+  erros?: {
+    valor?: string;
+    categoria?: string;
+    conta?: string;
+    destino?: string;
+    data?: string;
+    observacao?: string;
+  };
   /** Escolhas devolvidas em caso de erro, para o formulário não perdê-las. */
-  valores?: { categoria: string; conta: string; centro: string; forma: string; observacao: string };
+  valores?: {
+    tipo: string;
+    categoria: string;
+    conta: string;
+    destino: string;
+    centro: string;
+    forma: string;
+    observacao: string;
+  };
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const opcional = (v: FormDataEntryValue | null) => {
-  const t = String(v ?? "");
-  return UUID.test(t) ? t : null;
-};
+const opcional = (t: string) => (UUID.test(t) ? t : null);
 
-/** Grava uma receita ou despesa (R1, R2). Transferências e parcelas vêm depois. */
+/**
+ * Grava uma receita, despesa (R1, R2) ou transferência entre contas (R4).
+ * "Salvar e lançar outro" volta ao formulário; "Salvar" vai para Contas.
+ */
 export async function criarLancamento(
   _anterior: EstadoLancamento,
   formData: FormData,
 ): Promise<EstadoLancamento> {
-  const tipo = String(formData.get("tipo") ?? "");
-  const valor = lerValor(String(formData.get("valor") ?? ""));
-  const categoria = String(formData.get("categoria") ?? "");
-  const conta = String(formData.get("conta") ?? "");
-  const data = String(formData.get("data") ?? "");
+  const campo = (nome: string) => String(formData.get(nome) ?? "");
+  const tipo = campo("tipo");
+  const valor = lerValor(campo("valor"));
+  const data = campo("data");
   const pago = formData.get("pago") === "on";
-  const observacao = String(formData.get("observacao") ?? "").trim();
+  const observacao = campo("observacao").trim();
+  const depois = campo("depois");
 
   const valores = {
-    categoria,
-    conta,
-    centro: String(formData.get("centro_custo") ?? ""),
-    forma: String(formData.get("forma_pagamento") ?? ""),
+    tipo,
+    categoria: campo("categoria"),
+    conta: campo("conta"),
+    destino: campo("destino"),
+    centro: campo("centro_custo"),
+    forma: campo("forma_pagamento"),
     observacao,
   };
 
-  if (tipo !== "receita" && tipo !== "despesa") {
-    return { mensagem: "Escolha se é uma despesa ou uma receita.", valores };
+  if (tipo !== "receita" && tipo !== "despesa" && tipo !== "transferencia") {
+    return { mensagem: "Escolha se é despesa, receita ou transferência.", valores };
   }
+  const transferencia = tipo === "transferencia";
 
   const erros: EstadoLancamento["erros"] = {};
   if (valor === null || valor <= 0) erros.valor = "Informe um valor maior que zero, como 150,00.";
-  if (!UUID.test(categoria)) erros.categoria = "Escolha a categoria.";
-  if (!UUID.test(conta)) erros.conta = "Escolha a conta.";
+  if (!transferencia && !UUID.test(valores.categoria)) erros.categoria = "Escolha a categoria.";
+  if (!UUID.test(valores.conta)) erros.conta = "Escolha a conta.";
+  if (transferencia) {
+    if (!UUID.test(valores.destino)) erros.destino = "Escolha a conta que recebe o dinheiro.";
+    else if (valores.destino === valores.conta) erros.destino = "Escolha uma conta diferente da conta de saída.";
+  }
   if (!dataValida(data)) erros.data = "Escolha uma data válida.";
   if (observacao.length > 500) erros.observacao = "Use no máximo 500 caracteres.";
   if (Object.keys(erros).length > 0) return { erros, valores };
@@ -56,13 +78,14 @@ export async function criarLancamento(
   const { error } = await supabase.from("lancamentos").insert({
     tipo,
     valor: valor as number,
-    categoria_id: categoria,
-    conta_id: conta,
+    categoria_id: transferencia ? null : valores.categoria,
+    conta_id: valores.conta,
+    conta_destino_id: transferencia ? valores.destino : null,
     data_lancamento: hojeEmSaoPaulo(),
     data_vencimento: data,
     data_pagamento: pago ? data : null,
-    centro_custo_id: opcional(formData.get("centro_custo")),
-    forma_pagamento_id: opcional(formData.get("forma_pagamento")),
+    centro_custo_id: transferencia ? null : opcional(valores.centro),
+    forma_pagamento_id: transferencia ? null : opcional(valores.forma),
     observacao: observacao || null,
   });
 
@@ -70,14 +93,15 @@ export async function criarLancamento(
     return {
       valores,
       mensagem: mensagemDeErro(error, {
-        "23514":
-          tipo === "despesa"
-            ? "Confira os dados: a categoria precisa ser de despesa e o valor maior que zero."
-            : "Confira os dados: a categoria precisa ser de receita e o valor maior que zero.",
-        "23503": "A conta ou a categoria escolhida não está mais disponível. Atualize a página e escolha de novo.",
+        "23514": transferencia
+          ? "Confira os dados: a conta de entrada precisa ser diferente da de saída e o valor maior que zero."
+          : `Confira os dados: a categoria precisa ser de ${tipo} e o valor maior que zero.`,
+        "23503": "Uma das contas ou a categoria não está mais disponível. Atualize a página e escolha de novo.",
       }),
     };
   }
 
+  // "n" muda a cada salvamento, para o formulário recomeçar limpo.
+  if (depois === "outro") redirect(`/lancamentos/novo?salvo=${tipo}&tipo=${tipo}&n=${Date.now()}`);
   redirect(`/contas?lancado=${tipo}`);
 }

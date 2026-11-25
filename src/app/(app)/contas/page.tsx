@@ -191,11 +191,12 @@ async function ListaDeContas() {
 
 async function AvisoLancado({ searchParams }: { searchParams: Promise<{ lancado?: string }> }) {
   const { lancado } = await searchParams;
-  if (lancado !== "despesa" && lancado !== "receita") return null;
+  if (lancado !== "despesa" && lancado !== "receita" && lancado !== "transferencia") return null;
+  const texto = { despesa: "Despesa salva.", receita: "Receita salva.", transferencia: "Transferência salva." }[lancado];
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-pos/10 px-4 py-3" role="status">
       <p className="font-semibold text-pos">
-        {lancado === "despesa" ? "Despesa salva." : "Receita salva."} Os saldos abaixo já estão atualizados.
+        {texto} Os saldos abaixo já estão atualizados.
       </p>
       <Link href="/lancamentos/novo" className="text-sm font-semibold text-accent underline-offset-4 hover:underline">
         Lançar outro
