@@ -17,6 +17,7 @@ export type EstadoLancamento = {
     data?: string;
     observacao?: string;
     parcelas?: string;
+    pessoa?: string;
   };
   /** Escolhas devolvidas em caso de erro, para o formulário não perdê-las. */
   valores?: {
@@ -26,12 +27,53 @@ export type EstadoLancamento = {
     destino: string;
     centro: string;
     forma: string;
+    pessoa: string;
     observacao: string;
   };
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const opcional = (t: string) => (UUID.test(t) ? t : null);
+
+type Cliente = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Acha a pessoa pelo nome (sem diferenciar maiúsculas) ou cria na hora.
+ * Quem era só cliente e aparece numa despesa (ou o contrário) passa a "ambos".
+ */
+async function pessoaDoLancamento(
+  supabase: Cliente,
+  nome: string,
+  papel: "cliente" | "fornecedor",
+): Promise<{ id: string } | { erro: string }> {
+  const { data: existentes, error } = await supabase
+    .from("pessoas")
+    .select("id, nome, tipo, ativa")
+    .ilike("nome", nome.replace(/[\\%_]/g, (c) => "\\" + c))
+    .order("ativa", { ascending: false })
+    .order("criado_em")
+    .limit(1);
+  if (error) return { erro: mensagemDeErro(error) };
+
+  const achada = existentes?.[0];
+  if (achada) {
+    const mudancas: { tipo?: string; ativa?: boolean } = {};
+    if (achada.tipo !== papel && achada.tipo !== "ambos") mudancas.tipo = "ambos";
+    if (!achada.ativa) mudancas.ativa = true;
+    if (Object.keys(mudancas).length > 0) {
+      await supabase.from("pessoas").update(mudancas).eq("id", achada.id);
+    }
+    return { id: achada.id };
+  }
+
+  const { data: nova, error: erroNova } = await supabase
+    .from("pessoas")
+    .insert({ nome, tipo: papel })
+    .select("id")
+    .single();
+  if (erroNova || !nova) return { erro: mensagemDeErro(erroNova) };
+  return { id: nova.id };
+}
 
 /**
  * Grava uma receita, despesa (R1, R2) ou transferência entre contas (R4).
@@ -58,6 +100,7 @@ export async function criarLancamento(
     destino: campo("destino"),
     centro: campo("centro_custo"),
     forma: campo("forma_pagamento"),
+    pessoa: campo("pessoa").replace(/s+/g, " ").trim(),
     observacao,
   };
 
@@ -75,6 +118,7 @@ export async function criarLancamento(
     else if (valores.destino === valores.conta) erros.destino = "Escolha uma conta diferente da conta de saída.";
   }
   if (!dataValida(data)) erros.data = "Escolha uma data válida.";
+  if (valores.pessoa.length > 120) erros.pessoa = "Use no máximo 120 caracteres.";
   if (observacao.length > 500) erros.observacao = "Use no máximo 500 caracteres.";
   if (!Number.isInteger(parcelas) || parcelas < 1 || parcelas > 48) {
     erros.parcelas = "Informe de 1 a 48 parcelas.";
@@ -85,6 +129,16 @@ export async function criarLancamento(
   }
   if (Object.keys(erros).length > 0) return { erros, valores };
 
+  const supabase = await createClient();
+
+  // Pessoa (R9): "Pago a" na despesa, "Recebido de" na receita.
+  let pessoaId: string | null = null;
+  if (!transferencia && valores.pessoa) {
+    const resultado = await pessoaDoLancamento(supabase, valores.pessoa, tipo === "despesa" ? "fornecedor" : "cliente");
+    if ("erro" in resultado) return { valores, mensagem: resultado.erro };
+    pessoaId = resultado.id;
+  }
+
   const base = {
     tipo,
     categoria_id: transferencia ? null : valores.categoria,
@@ -93,6 +147,7 @@ export async function criarLancamento(
     data_lancamento: hojeEmSaoPaulo(),
     centro_custo_id: transferencia ? null : opcional(valores.centro),
     forma_pagamento_id: transferencia ? null : opcional(valores.forma),
+    pessoa_id: pessoaId,
     observacao: observacao || null,
   };
 
@@ -112,7 +167,6 @@ export async function criarLancamento(
         }))
       : [{ ...base, valor: valor as number, data_vencimento: data, data_pagamento: pago ? data : null }];
 
-  const supabase = await createClient();
   const { error } = await supabase.from("lancamentos").insert(linhas);
 
   if (error) {

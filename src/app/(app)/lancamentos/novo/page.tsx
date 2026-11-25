@@ -32,12 +32,13 @@ async function Conteudo({ searchParams }: { searchParams: Parametros }) {
       .limit(1)
       .maybeSingle();
 
-  const [contas, grupos, categorias, centros, formas, ultDespesa, ultReceita, ultTransf] = await Promise.all([
+  const [contas, grupos, categorias, centros, formas, pessoas, ultDespesa, ultReceita, ultTransf] = await Promise.all([
     supabase.from("contas_financeiras").select("id, instituicao, nome").eq("ativa", true),
     supabase.from("grupos").select("id, nome, natureza, ordem").eq("ativo", true),
     supabase.from("categorias").select("id, nome, grupo_id").eq("ativa", true),
     supabase.from("centros_custo").select("id, nome").eq("ativo", true),
     supabase.from("formas_pagamento").select("id, nome").eq("ativa", true),
+    supabase.from("pessoas").select("nome").eq("ativa", true).order("nome").limit(500),
     ultimo("despesa"),
     ultimo("receita"),
     ultimo("transferencia"),
@@ -100,6 +101,7 @@ async function Conteudo({ searchParams }: { searchParams: Parametros }) {
         categorias={listaCategorias}
         centros={(centros.data ?? []).map((c) => ({ id: c.id, rotulo: c.nome }))}
         formas={(formas.data ?? []).map((f) => ({ id: f.id, rotulo: f.nome }))}
+        pessoas={[...new Set((pessoas.data ?? []).map((p) => p.nome))]}
         sugestoes={sugestoes}
       />
     </>

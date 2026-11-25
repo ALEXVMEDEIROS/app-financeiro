@@ -30,6 +30,7 @@ export function FormLancamento({
   categorias,
   centros,
   formas,
+  pessoas,
   sugestoes,
 }: {
   hoje: string;
@@ -38,6 +39,8 @@ export function FormLancamento({
   categorias: CategoriaOpcao[];
   centros: Opcao[];
   formas: Opcao[];
+  /** Nomes das pessoas ativas, para completar o campo "Pago a" / "Recebido de". */
+  pessoas: string[];
   sugestoes: Sugestoes;
 }) {
   const [estado, acao, salvando] = useActionState(criarLancamento, {} as EstadoLancamento);
@@ -206,6 +209,38 @@ export function FormLancamento({
         <div className="mt-3 flex flex-col gap-4">
           {!transferencia && (
             <>
+              <div className="flex flex-col gap-1.5">
+                <span className="flex items-center gap-2">
+                  <label htmlFor="pessoa" className="text-sm font-semibold">
+                    {tipo === "despesa" ? "Pago a" : "Recebido de"}
+                  </label>
+                  <Ajuda titulo={tipo === "despesa" ? "Pago a" : "Recebido de"}>
+                    {tipo === "despesa"
+                      ? "Quem recebeu o seu dinheiro: a loja, o fornecedor, o prestador."
+                      : "Quem pagou você: o cliente, a empresa, o inquilino."}{" "}
+                    Comece a digitar para escolher alguém já usado. Um nome novo é cadastrado na hora.
+                  </Ajuda>
+                </span>
+                <input
+                  id="pessoa"
+                  name="pessoa"
+                  list="lista-pessoas"
+                  autoComplete="off"
+                  maxLength={120}
+                  defaultValue={estado.valores?.pessoa}
+                  placeholder="Opcional"
+                  aria-invalid={Boolean(estado.erros?.pessoa)}
+                  className={`min-h-11 rounded-lg border bg-surface px-3 outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                    estado.erros?.pessoa ? "border-neg" : "border-line"
+                  }`}
+                />
+                <datalist id="lista-pessoas">
+                  {pessoas.map((p) => (
+                    <option key={p} value={p} />
+                  ))}
+                </datalist>
+                {estado.erros?.pessoa && <p className="text-sm text-neg">{estado.erros.pessoa}</p>}
+              </div>
               <div className="flex flex-col gap-1.5">
                 <span className="flex items-center gap-2">
                   <label htmlFor="parcelas" className="text-sm font-semibold">Parcelas</label>
