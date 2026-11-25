@@ -21,7 +21,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Lançamentos · Sobra Vida", robots: { index: false } };
 
-type Parametros = Promise<{ mes?: string; tipo?: string; aberto?: string; busca?: string }>;
+type Parametros = Promise<{ mes?: string; tipo?: string; aberto?: string; busca?: string; aviso?: string }>;
+
+const AVISOS: Record<string, string> = {
+  quitado: "Pagamento registrado. Os saldos já estão atualizados.",
+  desfeito: "Pagamento desfeito: o lançamento voltou a ficar em aberto.",
+};
 
 type Linha = {
   id: string;
@@ -170,10 +175,14 @@ function Totais({ linhas, filtrado }: { linhas: Linha[]; filtrado: boolean }) {
   );
 }
 
-function ItemLancamento({ l, comData = false }: { l: Linha; comData?: boolean }) {
+function ItemLancamento({ l, voltar, comData = false }: { l: Linha; voltar: string; comData?: boolean }) {
   const selo = SELO[l.situacao];
   return (
-    <li className="flex items-start justify-between gap-3 px-4 py-3">
+    <li>
+      <Link
+        href={`/lancamentos/${l.id}?voltar=${encodeURIComponent(voltar)}`}
+        className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent"
+      >
       <div className="min-w-0">
         <p className="truncate font-semibold" title={l.titulo}>
           {l.titulo}
@@ -189,12 +198,13 @@ function ItemLancamento({ l, comData = false }: { l: Linha; comData?: boolean })
         <Valor valor={l.efetivo} tipo={l.tipo} />
         <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${selo.classe}`}>{selo.texto}</span>
       </div>
+      </Link>
     </li>
   );
 }
 
 /** Contas vencidas e não pagas de meses anteriores: aparecem no mês atual para não serem esquecidas. */
-function AtrasadosAnteriores({ linhas }: { linhas: Linha[] }) {
+function AtrasadosAnteriores({ linhas, voltar }: { linhas: Linha[]; voltar: string }) {
   if (linhas.length === 0) return null;
   const aPagar = somaDe(linhas, "despesa");
   const aReceber = somaDe(linhas, "receita");
@@ -219,7 +229,7 @@ function AtrasadosAnteriores({ linhas }: { linhas: Linha[] }) {
       </h2>
       <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
         {linhas.map((l) => (
-          <ItemLancamento key={l.id} l={l} comData />
+          <ItemLancamento key={l.id} l={l} voltar={voltar} comData />
         ))}
       </ul>
     </section>
@@ -311,13 +321,22 @@ async function ListaDoMes({ searchParams }: { searchParams: Parametros }) {
   const linhas = todas.filter(passa);
   const anteriores = (atrasados.data ?? []).map(montar).filter(passa);
 
+  // Endereço desta lista (sem o aviso), para voltar a ela depois de quitar.
+  const voltar = `/lancamentos${enderecoComFiltros(mesNoEndereco(mes), filtros)}`;
+  const aviso = params.aviso ? AVISOS[params.aviso] : undefined;
+
   const dias = new Map<string, Linha[]>();
   for (const l of linhas) dias.set(l.vencimento, [...(dias.get(l.vencimento) ?? []), l]);
 
   return (
     <>
+      {aviso && (
+        <p className="rounded-lg bg-pos/10 px-4 py-3 font-semibold text-pos" role="status">
+          {aviso}
+        </p>
+      )}
       <NavegacaoDoMes mes={mes} mesDeHoje={mesDeHoje} filtros={filtros} />
-      <AtrasadosAnteriores linhas={anteriores} />
+      <AtrasadosAnteriores linhas={anteriores} voltar={voltar} />
       <Totais linhas={linhas} filtrado={temFiltro(filtros)} />
       <BarraDeFiltros mes={mes} filtros={filtros} />
       {linhas.length === 0 ? (
@@ -364,7 +383,7 @@ async function ListaDoMes({ searchParams }: { searchParams: Parametros }) {
               </h2>
               <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
                 {doDia.map((l) => (
-                  <ItemLancamento key={l.id} l={l} />
+                  <ItemLancamento key={l.id} l={l} voltar={voltar} />
                 ))}
               </ul>
             </section>
