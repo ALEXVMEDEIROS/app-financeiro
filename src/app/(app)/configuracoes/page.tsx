@@ -9,6 +9,11 @@ const ITENS = [
     titulo: "Pessoas",
     texto: "Clientes e fornecedores: quem pagou você e a quem você pagou.",
   },
+  {
+    href: "/configuracoes/plano-de-contas",
+    titulo: "Plano de contas",
+    texto: "Grupos e categorias de receitas e despesas.",
+  },
 ];
 
 export default function PaginaConfiguracoes() {
@@ -27,12 +32,6 @@ export default function PaginaConfiguracoes() {
             </Link>
           </li>
         ))}
-        <li className="flex flex-col gap-1 rounded-xl border border-dashed border-line p-4">
-          <span className="font-semibold">Plano de contas</span>
-          <span className="text-sm text-muted">
-            Em construção: criar, renomear e desativar grupos e categorias.
-          </span>
-        </li>
       </ul>
     </div>
   );
