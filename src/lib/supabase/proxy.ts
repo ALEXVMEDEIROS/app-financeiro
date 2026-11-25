@@ -66,7 +66,7 @@ export async function atualizarSessao(request: NextRequest) {
     const destino = request.nextUrl.clone();
     destino.pathname = "/entrar";
     destino.search = "";
-    destino.searchParams.set("proxima", request.nextUrl.pathname);
+    destino.searchParams.set("proxima", request.nextUrl.pathname + request.nextUrl.search);
     const redirecionamento = NextResponse.redirect(destino);
     // Leva junto qualquer cookie que a renovação tenha gravado.
     response.cookies.getAll().forEach((c) => redirecionamento.cookies.set(c));
