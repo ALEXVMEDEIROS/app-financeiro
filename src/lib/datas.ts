@@ -80,3 +80,20 @@ export function situacao(vencimento: string, pagamento: string | null, hoje: str
   if (pagamento) return "pago";
   return vencimento < hoje ? "atrasado" : "em_aberto";
 }
+
+const DIAS_DA_SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+/** "quarta" para 2026-11-25. */
+export function diaDaSemana(iso: string): string {
+  const { a, m, d } = partes(iso);
+  return DIAS_DA_SEMANA[new Date(Date.UTC(a, m - 1, d)).getUTCDay()];
+}
+
+/**
+ * Mês pedido no endereço ("2026-11"), validado. Sem mês ou com mês inválido,
+ * vale o mês de hoje. Devolve o primeiro dia do mês ("2026-11-01").
+ */
+export function mesDoParametro(texto: string | undefined, hoje: string): string {
+  if (texto && /^\d{4}-\d{2}$/.test(texto) && dataValida(`${texto}-01`)) return `${texto}-01`;
+  return `${hoje.slice(0, 7)}-01`;
+}

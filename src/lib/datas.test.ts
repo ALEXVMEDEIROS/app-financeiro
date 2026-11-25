@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  diaDaSemana,
+  mesDoParametro,
   dataValida,
   diasNoMes,
   formatarData,
@@ -84,5 +86,25 @@ describe("situacao (R2)", () => {
   it("em aberto quando vence hoje ou depois", () => {
     expect(situacao("2026-11-24", null, "2026-11-24")).toBe("em_aberto");
     expect(situacao("2026-12-10", null, "2026-11-24")).toBe("em_aberto");
+  });
+});
+
+describe("diaDaSemana", () => {
+  it("dá o nome do dia", () => {
+    expect(diaDaSemana("2026-11-25")).toBe("quarta");
+    expect(diaDaSemana("2026-11-29")).toBe("domingo");
+    expect(diaDaSemana("2028-02-29")).toBe("terça");
+  });
+});
+
+describe("mesDoParametro", () => {
+  it("aceita AAAA-MM válido", () => {
+    expect(mesDoParametro("2027-01", "2026-11-25")).toBe("2027-01-01");
+  });
+  it("sem mês ou inválido usa o mês de hoje", () => {
+    expect(mesDoParametro(undefined, "2026-11-25")).toBe("2026-11-01");
+    expect(mesDoParametro("2026-13", "2026-11-25")).toBe("2026-11-01");
+    expect(mesDoParametro("abc", "2026-11-25")).toBe("2026-11-01");
+    expect(mesDoParametro("1999-05", "2026-11-25")).toBe("2026-11-01");
   });
 });

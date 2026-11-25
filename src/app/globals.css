@@ -9,6 +9,7 @@
   --accent: #0d6e66;
   --pos: #17784a;
   --neg: #bf3d2a;
+  --warn: #b7791f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +22,7 @@
     --accent: #34c3b3;
     --pos: #4fd08a;
     --neg: #f2836f;
+    --warn: #e5b45a;
     color-scheme: dark;
   }
 }
@@ -34,6 +36,7 @@
   --color-accent: var(--accent);
   --color-pos: var(--pos);
   --color-neg: var(--neg);
+  --color-warn: var(--warn);
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-display: var(--font-manrope), system-ui, sans-serif;
 }
