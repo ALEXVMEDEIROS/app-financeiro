@@ -3,12 +3,14 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { hojeEmSaoPaulo } from "@/lib/datas";
 import { FormConta } from "../form-conta";
+import { instituicoesDoUsuario } from "../instituicoes";
 
 export const metadata: Metadata = { title: "Nova conta · Sobra Vida", robots: { index: false } };
 
 async function Formulario() {
   await connection();
-  return <FormConta inicial={{}} hoje={hojeEmSaoPaulo()} />;
+  const instituicoes = await instituicoesDoUsuario();
+  return <FormConta inicial={{}} hoje={hojeEmSaoPaulo()} instituicoes={instituicoes} />;
 }
 
 export default function PaginaNovaConta() {

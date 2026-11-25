@@ -11,13 +11,14 @@ export const metadata: Metadata = { title: "Contas · Sobra Vida", robots: { ind
 
 const NOME_TIPO: Record<string, string> = {
   banco: "Banco",
-  corretora: "Corretora",
+  corretora: "Investimentos",
   carteira: "Carteira",
   caixa: "Caixa",
 };
 
 type LinhaSaldo = {
   conta_id: string;
+  instituicao: string | null;
   nome: string;
   tipo: string;
   ativa: boolean;
@@ -25,7 +26,33 @@ type LinhaSaldo = {
   saldo_previsto: number;
 };
 
-function CartaoConta({ conta, fimDoMes }: { conta: LinhaSaldo; fimDoMes: string }) {
+const SEM_INSTITUICAO = "Outras contas";
+
+/** Agrupa por instituição (ordem alfabética); contas sem instituição vão por último. */
+function agruparPorInstituicao(contas: LinhaSaldo[]) {
+  const grupos = new Map<string, LinhaSaldo[]>();
+  for (const c of contas) {
+    const chave = c.instituicao?.trim() || SEM_INSTITUICAO;
+    grupos.set(chave, [...(grupos.get(chave) ?? []), c]);
+  }
+  return [...grupos.entries()].sort(([a], [b]) =>
+    a === SEM_INSTITUICAO ? 1 : b === SEM_INSTITUICAO ? -1 : a.localeCompare(b, "pt-BR"),
+  );
+}
+
+const soma = (contas: LinhaSaldo[], campo: "saldo_atual" | "saldo_previsto") =>
+  contas.reduce((s, c) => s + Number(c[campo]), 0);
+
+function CartaoConta({
+  conta,
+  fimDoMes,
+  comInstituicao = false,
+}: {
+  conta: LinhaSaldo;
+  fimDoMes: string;
+  comInstituicao?: boolean;
+}) {
+  const titulo = comInstituicao && conta.instituicao ? `${conta.instituicao} · ${conta.nome}` : conta.nome;
   return (
     <li>
       <Link
@@ -34,7 +61,7 @@ function CartaoConta({ conta, fimDoMes }: { conta: LinhaSaldo; fimDoMes: string 
       >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-semibold" title={conta.nome}>{conta.nome}</p>
+          <p className="truncate font-semibold" title={titulo}>{titulo}</p>
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">{NOME_TIPO[conta.tipo] ?? conta.tipo}</p>
         </div>
         <Valor valor={Number(conta.saldo_atual)} className="text-lg" />
@@ -88,8 +115,9 @@ async function ListaDeContas() {
 
   if (contas.length === 0) return <TelaVazia />;
 
-  const totalHoje = ativas.reduce((s, c) => s + Number(c.saldo_atual), 0);
-  const totalPrevisto = ativas.reduce((s, c) => s + Number(c.saldo_previsto), 0);
+  const totalHoje = soma(ativas, "saldo_atual");
+  const totalPrevisto = soma(ativas, "saldo_previsto");
+  const grupos = agruparPorInstituicao(ativas);
 
   return (
     <div className="flex flex-col gap-6">
@@ -114,11 +142,28 @@ async function ListaDeContas() {
         </div>
       </section>
 
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {ativas.map((c) => (
-          <CartaoConta key={c.conta_id} conta={c} fimDoMes={fim} />
-        ))}
-      </ul>
+      {grupos.map(([instituicao, contasDoGrupo]) => (
+        <section key={instituicao} className="flex flex-col gap-3" aria-label={instituicao}>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line pb-2">
+            <h2 className="font-display text-lg font-bold">{instituicao}</h2>
+            {contasDoGrupo.length > 1 && (
+              <p className="flex flex-wrap items-baseline gap-x-3 text-sm text-muted">
+                <span>
+                  Hoje <Valor valor={soma(contasDoGrupo, "saldo_atual")} className="text-sm" />
+                </span>
+                <span>
+                  Previsto <Valor valor={soma(contasDoGrupo, "saldo_previsto")} className="text-sm" />
+                </span>
+              </p>
+            )}
+          </div>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {contasDoGrupo.map((c) => (
+              <CartaoConta key={c.conta_id} conta={c} fimDoMes={fim} />
+            ))}
+          </ul>
+        </section>
+      ))}
 
       {desativadas.length > 0 && (
         <details className="rounded-xl border border-line p-4">
@@ -127,7 +172,7 @@ async function ListaDeContas() {
           </summary>
           <ul className="mt-3 grid gap-3 opacity-70 sm:grid-cols-2">
             {desativadas.map((c) => (
-              <CartaoConta key={c.conta_id} conta={c} fimDoMes={fim} />
+              <CartaoConta key={c.conta_id} conta={c} fimDoMes={fim} comInstituicao />
             ))}
           </ul>
         </details>

@@ -10,6 +10,7 @@ import { excluirConta, salvarConta, type EstadoConta, type EstadoExcluir } from 
 
 export type DadosConta = {
   id?: string;
+  instituicao?: string | null;
   nome?: string;
   tipo?: string;
   saldo?: number;
@@ -18,25 +19,66 @@ export type DadosConta = {
 
 const TIPOS = [
   { valor: "banco", rotulo: "Banco (conta corrente ou poupança)" },
-  { valor: "corretora", rotulo: "Corretora (investimentos)" },
+  { valor: "corretora", rotulo: "Investimentos (fundo, CDB, corretora)" },
   { valor: "carteira", rotulo: "Carteira (dinheiro com você)" },
   { valor: "caixa", rotulo: "Caixa (dinheiro guardado, como o do escritório)" },
 ];
 
-export function FormConta({ inicial, hoje }: { inicial: DadosConta; hoje: string }) {
+export function FormConta({
+  inicial,
+  hoje,
+  instituicoes = [],
+}: {
+  inicial: DadosConta;
+  hoje: string;
+  instituicoes?: string[];
+}) {
   const [estado, acao, salvando] = useActionState(salvarConta, {} as EstadoConta);
   const editando = Boolean(inicial.id);
+  const erroInstituicao = estado.erros?.instituicao;
 
   return (
     <form action={acao} noValidate className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-5">
       {inicial.id && <input type="hidden" name="id" value={inicial.id} />}
+      <div className="flex flex-col gap-1.5">
+        <span className="flex items-center gap-2">
+          <label htmlFor="instituicao" className="text-sm font-semibold">
+            Instituição <span className="font-normal text-muted">(opcional)</span>
+          </label>
+          <Ajuda titulo="Instituição">
+            O banco ou a corretora, como Santander ou XP. Contas da mesma instituição aparecem
+            juntas, com o subtotal do banco. Deixe em branco para carteira e caixa.
+          </Ajuda>
+        </span>
+        <input
+          id="instituicao"
+          name="instituicao"
+          list="instituicoes-existentes"
+          autoComplete="off"
+          defaultValue={inicial.instituicao ?? ""}
+          placeholder="Ex.: Santander"
+          aria-invalid={Boolean(erroInstituicao)}
+          aria-describedby={erroInstituicao ? "instituicao-ajuda" : undefined}
+          className={`min-h-11 rounded-lg border bg-surface px-3 outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+            erroInstituicao ? "border-neg" : "border-line"
+          }`}
+        />
+        <datalist id="instituicoes-existentes">
+          {instituicoes.map((i) => (
+            <option key={i} value={i} />
+          ))}
+        </datalist>
+        {erroInstituicao && (
+          <p id="instituicao-ajuda" className="text-sm text-neg">{erroInstituicao}</p>
+        )}
+      </div>
       <Campo
         id="nome"
         rotulo="Nome da conta"
         autoComplete="off"
         valorInicial={inicial.nome}
         erro={estado.erros?.nome}
-        dica="Ex.: Itaú, Nubank, Poupança, Carteira."
+        dica="Ex.: Conta corrente, Fundo DI, Poupança, Carteira."
       />
       <SelecaoAgrupada
         id="tipo"

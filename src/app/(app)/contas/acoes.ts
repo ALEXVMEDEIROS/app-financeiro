@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type EstadoConta = {
   mensagem?: string;
-  erros?: { nome?: string; tipo?: string; saldo?: string; data?: string };
+  erros?: { instituicao?: string; nome?: string; tipo?: string; saldo?: string; data?: string };
 };
 
 const TIPOS = ["banco", "corretora", "carteira", "caixa"] as const;
@@ -17,12 +17,14 @@ type TipoConta = (typeof TIPOS)[number];
 /** Cria (sem id) ou altera (com id) uma conta. */
 export async function salvarConta(_anterior: EstadoConta, formData: FormData): Promise<EstadoConta> {
   const id = String(formData.get("id") ?? "");
+  const instituicao = String(formData.get("instituicao") ?? "").trim().replace(/\s+/g, " ");
   const nome = String(formData.get("nome") ?? "").trim();
   const tipo = String(formData.get("tipo") ?? "");
   const textoSaldo = String(formData.get("saldo") ?? "").trim();
   const data = String(formData.get("data") ?? "");
 
   const erros: EstadoConta["erros"] = {};
+  if (instituicao.length > 60) erros.instituicao = "Use no máximo 60 caracteres.";
   if (!nome) erros.nome = "Dê um nome à conta, como \"Itaú\" ou \"Carteira\".";
   else if (nome.length > 80) erros.nome = "Use no máximo 80 caracteres.";
   if (!TIPOS.includes(tipo as TipoConta)) erros.tipo = "Escolha o tipo da conta.";
@@ -33,6 +35,7 @@ export async function salvarConta(_anterior: EstadoConta, formData: FormData): P
 
   const supabase = await createClient();
   const dados = {
+    instituicao: instituicao || null,
     nome,
     tipo: tipo as TipoConta,
     saldo_inicial: saldo as number,
@@ -43,7 +46,15 @@ export async function salvarConta(_anterior: EstadoConta, formData: FormData): P
     : await supabase.from("contas_financeiras").insert(dados);
 
   if (error) {
-    if (error.code === "23505") return { erros: { nome: "Você já tem uma conta com esse nome." } };
+    if (error.code === "23505") {
+      return {
+        erros: {
+          nome: instituicao
+            ? `Você já tem uma conta com esse nome em ${instituicao}.`
+            : "Você já tem uma conta com esse nome sem instituição.",
+        },
+      };
+    }
     return { mensagem: mensagemDeErro(error) };
   }
   redirect("/contas");

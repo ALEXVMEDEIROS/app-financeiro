@@ -112,6 +112,7 @@ export type Database = {
           criado_em: string
           data_saldo_inicial: string
           id: string
+          instituicao: string | null
           nome: string
           saldo_inicial: number
           tipo: string
@@ -122,6 +123,7 @@ export type Database = {
           criado_em?: string
           data_saldo_inicial?: string
           id?: string
+          instituicao?: string | null
           nome: string
           saldo_inicial?: number
           tipo: string
@@ -132,6 +134,7 @@ export type Database = {
           criado_em?: string
           data_saldo_inicial?: string
           id?: string
+          instituicao?: string | null
           nome?: string
           saldo_inicial?: number
           tipo?: string
@@ -381,6 +384,7 @@ export type Database = {
         Returns: {
           ativa: boolean
           conta_id: string
+          instituicao: string
           nome: string
           saldo_atual: number
           saldo_inicial: number

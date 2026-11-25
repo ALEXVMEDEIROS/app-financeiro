@@ -62,6 +62,27 @@ begin
   if r.saldo_previsto = 945 then res := res || 'previsto_dezembro:ok ';
   else res := res || format('previsto_dezembro:FALHA(%s) ', r.saldo_previsto); falhas := falhas + 1; end if;
 
+  -- Instituição (sessão extra de 25/11/2026)
+  update public.contas_financeiras set instituicao = 'Santander' where id in (conta_a, poup_a);
+  select instituicao into r from public.saldos_contas('2026-11-24', '2026-11-30') where nome = 'Conta A';
+  if r.instituicao = 'Santander' then res := res || 'instituicao_no_resultado:ok ';
+  else res := res || 'instituicao_no_resultado:FALHA '; falhas := falhas + 1; end if;
+
+  begin
+    insert into public.contas_financeiras (instituicao, nome, tipo) values ('Itaú', 'Conta A', 'banco');
+    res := res || 'mesmo_nome_outro_banco:ok ';
+  exception when others then
+    res := res || 'mesmo_nome_outro_banco:FALHA(' || sqlstate || ') '; falhas := falhas + 1;
+  end;
+
+  begin
+    insert into public.contas_financeiras (instituicao, nome, tipo) values ('santander', 'conta a', 'banco');
+    res := res || 'mesmo_nome_mesmo_banco:FALHA(aceitou) '; falhas := falhas + 1;
+  exception when others then
+    if sqlstate = '23505' then res := res || 'mesmo_nome_mesmo_banco:ok ';
+    else res := res || 'mesmo_nome_mesmo_banco:FALHA(' || sqlstate || ') '; falhas := falhas + 1; end if;
+  end;
+
   -- B não vê as contas de A
   execute 'reset role';
   perform set_config('request.jwt.claims', json_build_object('sub', b, 'role', 'authenticated')::text, true);

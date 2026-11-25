@@ -7,6 +7,7 @@ import { hojeEmSaoPaulo } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
 import { alternarAtiva } from "../acoes";
 import { ExcluirConta, FormConta } from "../form-conta";
+import { instituicoesDoUsuario } from "../instituicoes";
 
 export const metadata: Metadata = { title: "Editar conta · Sobra Vida", robots: { index: false } };
 
@@ -16,7 +17,7 @@ async function Edicao({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
   const { data: conta } = await supabase
     .from("contas_financeiras")
-    .select("id, nome, tipo, saldo_inicial, data_saldo_inicial, ativa")
+    .select("id, instituicao, nome, tipo, saldo_inicial, data_saldo_inicial, ativa")
     .eq("id", id)
     .maybeSingle();
 
@@ -24,6 +25,7 @@ async function Edicao({ params }: { params: Promise<{ id: string }> }) {
   if (!conta) notFound();
 
   const alternar = alternarAtiva.bind(null, conta.id, !conta.ativa);
+  const instituicoes = await instituicoesDoUsuario();
 
   return (
     <div className="flex flex-col gap-6">
@@ -34,8 +36,10 @@ async function Edicao({ params }: { params: Promise<{ id: string }> }) {
       )}
       <FormConta
         hoje={hojeEmSaoPaulo()}
+        instituicoes={instituicoes}
         inicial={{
           id: conta.id,
+          instituicao: conta.instituicao,
           nome: conta.nome,
           tipo: conta.tipo,
           saldo: Number(conta.saldo_inicial),
