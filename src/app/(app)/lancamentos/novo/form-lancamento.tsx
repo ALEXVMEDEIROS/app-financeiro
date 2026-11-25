@@ -204,8 +204,15 @@ export function FormLancamento({
         </span>
       </label>
 
-      <details className="rounded-lg border border-line p-3">
-        <summary className="cursor-pointer text-sm font-semibold text-accent">Mais detalhes</summary>
+      {/* Abre sozinho quando o erro está num campo daqui de dentro, para ele não ficar escondido. */}
+      <details
+        open={Boolean(estado.erros?.parcelas || estado.erros?.pessoa || estado.erros?.observacao) || undefined}
+        className="rounded-lg border border-line p-3"
+      >
+        <summary className="cursor-pointer text-sm font-semibold text-accent">
+          Mais detalhes
+          {parcelado && <span className="font-normal text-muted"> · {n} parcelas</span>}
+        </summary>
         <div className="mt-3 flex flex-col gap-4">
           {!transferencia && (
             <>
