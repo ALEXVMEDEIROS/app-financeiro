@@ -22,7 +22,7 @@ Estimativa do plano de execução: 30 horas, prevista de 11/01 a 21/02/2027 (pod
 
 O menu da área logada passa a ter: Painel · Lançamentos · Contas · Configurações. No celular, um botão "+" fixo abre o lançamento rápido de qualquer tela.
 
-**Fora da F2:** cadastro de pessoas (clientes e fornecedores), relatórios, previsto x realizado e metas. O campo "pessoa" do lançamento fica para a fase em que pessoas forem cadastráveis (fase 3 do documento de produto).
+**Fora da F2:** relatórios, previsto x realizado e metas. **Antecipado a pedido do usuário (25/11/2026):** campo "Pago a / Recebido de" no lançamento (extra 3) e tela Pessoas (extra 4), antes da sessão 11.
 
 ## Decisões técnicas
 
