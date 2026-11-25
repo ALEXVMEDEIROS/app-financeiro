@@ -127,7 +127,7 @@ export function FormLancamento({
             <span className={`mr-2 rounded px-2 py-1 text-sm font-semibold ${TIPOS.find((t) => t.valor === tipo)?.cor}`}>
               {TIPOS.find((t) => t.valor === tipo)?.rotulo}
             </span>
-            {edicao.parcela && <>Parcela {edicao.parcela}: a alteração vale só para esta parcela.</>}
+            {edicao.parcela && <>Parcela {edicao.parcela}</>}
           </p>
         </>
       )}
@@ -157,7 +157,7 @@ export function FormLancamento({
 
       <CampoValor
         id="valor"
-        rotulo={parcelado ? "Valor total da compra" : "Valor"}
+        rotulo={parcelado ? "Valor total da compra" : edicao?.parcela ? "Valor da parcela" : "Valor"}
         valorInicial={edicao?.valor}
         erro={estado.erros?.valor}
         aoMudar={setValor}
@@ -373,6 +373,32 @@ export function FormLancamento({
           </div>
         </div>
       </details>
+
+      {edicao?.parcela && (
+        <fieldset className="flex flex-col gap-2 rounded-lg border border-line p-3">
+          <legend className="px-1 text-sm font-semibold">Aplicar a alteração a</legend>
+          {[
+            { valor: "esta", rotulo: "Só esta parcela" },
+            { valor: "seguintes", rotulo: "Esta e as seguintes" },
+            { valor: "todas", rotulo: "Todas as parcelas" },
+          ].map((o) => (
+            <label key={o.valor} className="flex min-h-11 cursor-pointer items-center gap-3">
+              <input
+                type="radio"
+                name="alcance"
+                value={o.valor}
+                defaultChecked={o.valor === "esta"}
+                className="h-5 w-5 accent-[var(--accent)]"
+              />
+              <span className="font-semibold">{o.rotulo}</span>
+            </label>
+          ))}
+          <p className="text-sm text-muted">
+            Parcelas já pagas não mudam. Se mudar a data, as outras parcelas seguem mês a mês a
+            partir da nova data.
+          </p>
+        </fieldset>
+      )}
 
       <AvisoErro mensagem={estado.mensagem} />
 

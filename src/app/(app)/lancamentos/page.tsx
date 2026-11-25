@@ -21,7 +21,14 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Lançamentos · Sobra Vida", robots: { index: false } };
 
-type Parametros = Promise<{ mes?: string; tipo?: string; aberto?: string; busca?: string; aviso?: string }>;
+type Parametros = Promise<{
+  mes?: string;
+  tipo?: string;
+  aberto?: string;
+  busca?: string;
+  aviso?: string;
+  alteradas?: string;
+}>;
 
 const AVISOS: Record<string, string> = {
   quitado: "Pagamento registrado. Os saldos já estão atualizados.",
@@ -324,7 +331,13 @@ async function ListaDoMes({ searchParams }: { searchParams: Parametros }) {
 
   // Endereço desta lista (sem o aviso), para voltar a ela depois de quitar.
   const voltar = `/lancamentos${enderecoComFiltros(mesNoEndereco(mes), filtros)}`;
-  const aviso = params.aviso ? AVISOS[params.aviso] : undefined;
+  const alteradas = Number(params.alteradas);
+  const aviso =
+    params.aviso === "editado" && Number.isInteger(alteradas) && alteradas > 1
+      ? `Alterações salvas em ${alteradas} parcelas.`
+      : params.aviso
+        ? AVISOS[params.aviso]
+        : undefined;
 
   const dias = new Map<string, Linha[]>();
   for (const l of linhas) dias.set(l.vencimento, [...(dias.get(l.vencimento) ?? []), l]);

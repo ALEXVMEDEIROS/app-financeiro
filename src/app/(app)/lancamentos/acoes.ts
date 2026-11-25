@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { destinoSeguro } from "@/components/campo";
-import { dataValida, hojeEmSaoPaulo } from "@/lib/datas";
+import { dataValida, hojeEmSaoPaulo, somarMeses } from "@/lib/datas";
 import { lerValor } from "@/lib/dinheiro";
 import { mensagemDeErro } from "@/lib/erros-banco";
 import { dividirParcelas } from "@/lib/parcelas";
@@ -201,10 +201,12 @@ export async function criarLancamento(
 }
 
 /**
- * Edita um lançamento (sessão 15). O tipo não muda. O pagamento é tratado em
- * "Marcar como pago" / "Desfazer"; mas, se o lançamento nasceu pago (pagamento
- * no mesmo dia do vencimento), mudar a data move as duas juntas.
- * Parcelas: altera só esta parcela (o alcance chega na sessão 16).
+ * Edita um lançamento (sessões 15 e 16). O tipo não muda. O pagamento é tratado
+ * em "Marcar como pago" / "Desfazer"; mas, se o lançamento nasceu pago
+ * (pagamento no mesmo dia do vencimento), mudar a data move as duas juntas.
+ * Parcelas (R11): alcance "esta", "seguintes" ou "todas". Parcelas já pagas,
+ * além da que está sendo editada, não mudam. Com a data alterada, as demais
+ * seguem mês a mês a partir da nova data.
  */
 export async function editarLancamento(
   _anterior: EstadoLancamento,
@@ -215,10 +217,11 @@ export async function editarLancamento(
   const supabase = await createClient();
   const { data: atual } = await supabase
     .from("lancamentos")
-    .select("id, tipo, data_vencimento, data_pagamento")
+    .select("id, tipo, data_vencimento, data_pagamento, grupo_parcelas_id, parcela_num, parcela_total")
     .eq("id", id)
     .maybeSingle();
   if (!atual) return { mensagem: "Não encontramos esse lançamento. Ele pode ter sido removido." };
+  const alcance = String(formData.get("alcance") ?? "esta");
 
   // O tipo vem do banco, não do formulário.
   formData.set("tipo", atual.tipo);
@@ -228,20 +231,57 @@ export async function editarLancamento(
   const pessoa = await idDaPessoa(supabase, f.valores.pessoa, atual.tipo);
   if ("erro" in pessoa) return { valores: f.valores, mensagem: pessoa.erro };
 
+  const campos = { ...camposDoFormulario(f, pessoa.id), valor: f.valor as number };
+  const agora = new Date().toISOString();
   const pagamentoJunto = atual.data_pagamento !== null && atual.data_pagamento === atual.data_vencimento;
-  const { error } = await supabase
-    .from("lancamentos")
-    .update({
-      ...camposDoFormulario(f, pessoa.id),
-      valor: f.valor as number,
-      data_vencimento: f.data,
-      ...(pagamentoJunto ? { data_pagamento: f.data } : {}),
-      atualizado_em: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) return { valores: f.valores, mensagem: mensagemDeErro(error, mensagensDoBanco(atual.tipo)) };
+  let alteradas = 1;
+
+  if (atual.grupo_parcelas_id && atual.parcela_num && (alcance === "seguintes" || alcance === "todas")) {
+    const { data: grupo, error: erroGrupo } = await supabase
+      .from("lancamentos")
+      .select("id, parcela_num, parcela_total, data_vencimento, data_pagamento")
+      .eq("grupo_parcelas_id", atual.grupo_parcelas_id);
+    if (erroGrupo || !grupo) return { valores: f.valores, mensagem: mensagemDeErro(erroGrupo) };
+
+    const mudouData = f.data !== atual.data_vencimento;
+    const numAtual = atual.parcela_num;
+    const linhas = grupo
+      .filter((p) => (alcance === "todas" || (p.parcela_num ?? 0) >= numAtual))
+      .filter((p) => p.id === atual.id || p.data_pagamento === null)
+      .map((p) => {
+        const vencimento =
+          p.id === atual.id ? f.data : mudouData ? somarMeses(f.data, (p.parcela_num ?? 0) - numAtual) : p.data_vencimento;
+        return {
+          id: p.id,
+          tipo: atual.tipo,
+          ...campos,
+          data_vencimento: vencimento,
+          data_pagamento: p.id === atual.id && pagamentoJunto ? f.data : p.data_pagamento,
+          parcela_num: p.parcela_num,
+          parcela_total: p.parcela_total,
+          grupo_parcelas_id: atual.grupo_parcelas_id,
+          atualizado_em: agora,
+        };
+      });
+    // Um único comando: ou todas as parcelas mudam, ou nenhuma.
+    const { error } = await supabase.from("lancamentos").upsert(linhas, { onConflict: "id" });
+    if (error) return { valores: f.valores, mensagem: mensagemDeErro(error, mensagensDoBanco(atual.tipo)) };
+    alteradas = linhas.length;
+  } else {
+    const { error } = await supabase
+      .from("lancamentos")
+      .update({
+        ...campos,
+        data_vencimento: f.data,
+        ...(pagamentoJunto ? { data_pagamento: f.data } : {}),
+        atualizado_em: agora,
+      })
+      .eq("id", id);
+    if (error) return { valores: f.valores, mensagem: mensagemDeErro(error, mensagensDoBanco(atual.tipo)) };
+  }
 
   const url = new URL(voltar, "http://x");
   url.searchParams.set("aviso", "editado");
+  if (alteradas > 1) url.searchParams.set("alteradas", String(alteradas));
   redirect(`${url.pathname}${url.search}`);
 }
