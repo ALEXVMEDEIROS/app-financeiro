@@ -131,6 +131,7 @@ async function Detalhe({ params, searchParams }: Props) {
             valor={valor}
             hoje={hoje}
             transferencia={tipo === "transferencia"}
+            vencimento={l.data_vencimento}
             textoBotao={textoPagar}
             voltar={voltar}
           />
