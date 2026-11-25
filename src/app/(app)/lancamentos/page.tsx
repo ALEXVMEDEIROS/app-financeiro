@@ -34,6 +34,7 @@ const AVISOS: Record<string, string> = {
   quitado: "Pagamento registrado. Os saldos já estão atualizados.",
   desfeito: "Pagamento desfeito: o lançamento voltou a ficar em aberto.",
   editado: "Alterações salvas.",
+  excluido: "Lançamento excluído. Os saldos já estão atualizados.",
 };
 
 type Linha = {
@@ -333,8 +334,10 @@ async function ListaDoMes({ searchParams }: { searchParams: Parametros }) {
   const voltar = `/lancamentos${enderecoComFiltros(mesNoEndereco(mes), filtros)}`;
   const alteradas = Number(params.alteradas);
   const aviso =
-    params.aviso === "editado" && Number.isInteger(alteradas) && alteradas > 1
-      ? `Alterações salvas em ${alteradas} parcelas.`
+    (params.aviso === "editado" || params.aviso === "excluido") && Number.isInteger(alteradas) && alteradas > 1
+      ? params.aviso === "editado"
+        ? `Alterações salvas em ${alteradas} parcelas.`
+        : `${alteradas} parcelas excluídas. Os saldos já estão atualizados.`
       : params.aviso
         ? AVISOS[params.aviso]
         : undefined;

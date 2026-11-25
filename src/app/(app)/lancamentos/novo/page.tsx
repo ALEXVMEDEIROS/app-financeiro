@@ -4,11 +4,11 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { hojeEmSaoPaulo } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
-import { FormLancamento, type CategoriaOpcao, type Sugestoes, type Tipo } from "./form-lancamento";
+import { FormLancamento, type CategoriaOpcao, type Modelo, type Sugestoes, type Tipo } from "./form-lancamento";
 
 export const metadata: Metadata = { title: "Novo lançamento · Sobra Vida", robots: { index: false } };
 
-type Parametros = Promise<{ salvo?: string; tipo?: string; n?: string; parcelas?: string }>;
+type Parametros = Promise<{ salvo?: string; tipo?: string; n?: string; parcelas?: string; duplicar?: string }>;
 const TIPOS: Tipo[] = ["despesa", "receita", "transferencia"];
 const NOME_SALVO: Record<Tipo, string> = {
   despesa: "Despesa salva.",
@@ -19,7 +19,7 @@ const NOME_SALVO: Record<Tipo, string> = {
 async function Conteudo({ searchParams }: { searchParams: Parametros }) {
   await connection();
   const params = await searchParams;
-  const tipoInicial = TIPOS.includes(params.tipo as Tipo) ? (params.tipo as Tipo) : "despesa";
+  let tipoInicial = TIPOS.includes(params.tipo as Tipo) ? (params.tipo as Tipo) : "despesa";
   const salvo = TIPOS.includes(params.salvo as Tipo) ? (params.salvo as Tipo) : null;
 
   const supabase = await createClient();
@@ -79,6 +79,32 @@ async function Conteudo({ searchParams }: { searchParams: Parametros }) {
           destino: l.conta_destino_id && contasAtivas.has(l.conta_destino_id) ? l.conta_destino_id : undefined,
         }
       : undefined;
+  // "Duplicar": parte de um lançamento existente (só o que ainda está ativo).
+  let modelo: Modelo | undefined;
+  if (params.duplicar && /^[0-9a-f-]{36}$/i.test(params.duplicar)) {
+    const { data: o } = await supabase
+      .from("lancamentos")
+      .select("tipo, valor, categoria_id, conta_id, conta_destino_id, centro_custo_id, forma_pagamento_id, pessoa_id, observacao")
+      .eq("id", params.duplicar)
+      .maybeSingle();
+    if (o) {
+      const pessoa = o.pessoa_id
+        ? (await supabase.from("pessoas").select("nome").eq("id", o.pessoa_id).maybeSingle()).data?.nome
+        : undefined;
+      tipoInicial = o.tipo as Tipo;
+      modelo = {
+        valor: Number(o.valor),
+        categoria: o.categoria_id && categoriasAtivas.has(o.categoria_id) ? o.categoria_id : undefined,
+        conta: contasAtivas.has(o.conta_id) ? o.conta_id : "",
+        destino: o.conta_destino_id && contasAtivas.has(o.conta_destino_id) ? o.conta_destino_id : undefined,
+        centro: o.centro_custo_id ?? undefined,
+        forma: o.forma_pagamento_id ?? undefined,
+        pessoa,
+        observacao: o.observacao ?? undefined,
+      };
+    }
+  }
+
   const sugestoes: Sugestoes = {
     despesa: sugerir(ultDespesa.data),
     receita: sugerir(ultReceita.data),
@@ -87,6 +113,11 @@ async function Conteudo({ searchParams }: { searchParams: Parametros }) {
 
   return (
     <>
+      {modelo && (
+        <p className="rounded-lg bg-accent/10 px-4 py-3 text-sm font-semibold" role="status">
+          Cópia de um lançamento: confira a data e o valor e salve. O original não muda.
+        </p>
+      )}
       {salvo && (
         <p className="rounded-lg bg-pos/10 px-4 py-3 font-semibold text-pos" role="status">
           {NOME_SALVO[salvo]}
@@ -94,7 +125,7 @@ async function Conteudo({ searchParams }: { searchParams: Parametros }) {
         </p>
       )}
       <FormLancamento
-        key={params.n ?? "novo"}
+        key={params.n ?? params.duplicar ?? "novo"}
         hoje={hojeEmSaoPaulo()}
         tipoInicial={tipoInicial}
         contas={listaContas}
@@ -103,6 +134,7 @@ async function Conteudo({ searchParams }: { searchParams: Parametros }) {
         formas={(formas.data ?? []).map((f) => ({ id: f.id, rotulo: f.nome }))}
         pessoas={[...new Set((pessoas.data ?? []).map((p) => p.nome))]}
         sugestoes={sugestoes}
+        modelo={modelo}
       />
     </>
   );

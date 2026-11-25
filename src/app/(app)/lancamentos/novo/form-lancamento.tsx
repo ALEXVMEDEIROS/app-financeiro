@@ -35,6 +35,9 @@ export type Edicao = {
   parcela?: string;
 };
 
+/** Valores de partida para "Duplicar": cria um lançamento novo já preenchido. */
+export type Modelo = Pick<Edicao, "valor" | "categoria" | "conta" | "destino" | "centro" | "forma" | "pessoa" | "observacao">;
+
 export type Sugestoes = Partial<Record<Tipo, { categoria?: string; conta?: string; destino?: string }>>;
 
 const TIPOS: { valor: Tipo; rotulo: string; cor: string }[] = [
@@ -53,6 +56,7 @@ export function FormLancamento({
   pessoas,
   sugestoes,
   edicao,
+  modelo,
 }: {
   hoje: string;
   tipoInicial: Tipo;
@@ -64,7 +68,9 @@ export function FormLancamento({
   pessoas: string[];
   sugestoes: Sugestoes;
   edicao?: Edicao;
+  modelo?: Modelo;
 }) {
+  const preenchido = edicao ?? modelo;
   const [estado, acao, salvando] = useActionState(edicao ? editarLancamento : criarLancamento, {} as EstadoLancamento);
   const [tipo, setTipo] = useState<Tipo>(tipoInicial);
   const [data, setData] = useState(edicao?.data ?? hoje);
@@ -72,7 +78,7 @@ export function FormLancamento({
   const [pagoManual, setPagoManual] = useState<boolean | null>(null);
   const pago = pagoManual ?? data <= hoje;
   const transferencia = tipo === "transferencia";
-  const [valor, setValor] = useState<number | null>(edicao?.valor ?? null);
+  const [valor, setValor] = useState<number | null>(preenchido?.valor ?? null);
   const [qtdParcelas, setQtdParcelas] = useState("1");
   const n = Number(qtdParcelas);
   const parcelado = !edicao && !transferencia && Number.isInteger(n) && n >= 2 && n <= 48;
@@ -89,7 +95,8 @@ export function FormLancamento({
 
   // Depois de um erro, vale o que o usuário tinha escolhido; senão, a sugestão do tipo.
   const voltouComErro = estado.valores?.tipo === tipo;
-  const sugestao = edicao ?? sugestoes[tipo] ?? {};
+  // O modelo só vale para o tipo original; trocando o tipo, voltam as sugestões.
+  const sugestao = edicao ?? (modelo && tipo === tipoInicial ? modelo : undefined) ?? sugestoes[tipo] ?? {};
   const inicial = {
     categoria: voltouComErro ? estado.valores?.categoria : sugestao.categoria,
     conta: voltouComErro ? estado.valores?.conta : sugestao.conta ?? (contas.length === 1 ? contas[0].id : undefined),
@@ -111,7 +118,7 @@ export function FormLancamento({
 
   // Depois de um erro valem os valores devolvidos; senão, os do lançamento em edição.
   const textoInicial = (campo: "pessoa" | "observacao" | "centro" | "forma") =>
-    estado.valores ? estado.valores[campo] : edicao?.[campo];
+    estado.valores ? estado.valores[campo] : preenchido?.[campo];
 
   const opcoesContas = [{ grupo: "", opcoes: contas.map((c) => ({ valor: c.id, rotulo: c.rotulo })) }];
   const textoPago = tipo === "despesa" ? "Já paguei" : tipo === "receita" ? "Já recebi" : "Já foi feita";
@@ -158,7 +165,7 @@ export function FormLancamento({
       <CampoValor
         id="valor"
         rotulo={parcelado ? "Valor total da compra" : edicao?.parcela ? "Valor da parcela" : "Valor"}
-        valorInicial={edicao?.valor}
+        valorInicial={preenchido?.valor}
         erro={estado.erros?.valor}
         aoMudar={setValor}
       />
@@ -255,10 +262,10 @@ export function FormLancamento({
             estado.erros?.parcelas ||
               estado.erros?.pessoa ||
               estado.erros?.observacao ||
-              edicao?.pessoa ||
-              edicao?.centro ||
-              edicao?.forma ||
-              edicao?.observacao,
+              preenchido?.pessoa ||
+              preenchido?.centro ||
+              preenchido?.forma ||
+              preenchido?.observacao,
           ) || undefined
         }
         className="rounded-lg border border-line p-3"

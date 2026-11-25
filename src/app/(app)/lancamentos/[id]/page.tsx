@@ -11,6 +11,7 @@ import { formatarMoeda } from "@/lib/dinheiro";
 import { valorEfetivo } from "@/lib/parcelas";
 import { createClient } from "@/lib/supabase/server";
 import { desfazerPagamento } from "../quitar";
+import { ExcluirLancamento, type ResumoParcelas } from "./excluir";
 import { FormQuitar } from "./form-quitar";
 
 export const metadata: Metadata = { title: "Lançamento · Sobra Vida", robots: { index: false } };
@@ -37,7 +38,7 @@ async function Detalhe({ params, searchParams }: Props) {
   const { data: l } = await supabase
     .from("lancamentos")
     .select(
-      "id, tipo, valor, juros, multa, desconto, data_vencimento, data_pagamento, parcela_num, parcela_total, categoria_id, conta_id, conta_destino_id, pessoa_id, observacao",
+      "id, tipo, valor, juros, multa, desconto, data_vencimento, data_pagamento, parcela_num, parcela_total, grupo_parcelas_id, categoria_id, conta_id, conta_destino_id, pessoa_id, observacao",
     )
     .eq("id", id)
     .maybeSingle();
@@ -50,7 +51,7 @@ async function Detalhe({ params, searchParams }: Props) {
   const voltar = destinoSeguro(textoVoltar, `/lancamentos?mes=${l.data_vencimento.slice(0, 7)}`);
 
   const idsContas = [l.conta_id, l.conta_destino_id].filter((x): x is string => Boolean(x));
-  const [categoria, contas, pessoa] = await Promise.all([
+  const [categoria, contas, pessoa, grupo] = await Promise.all([
     l.categoria_id
       ? supabase.from("categorias").select("nome").eq("id", l.categoria_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -58,7 +59,24 @@ async function Detalhe({ params, searchParams }: Props) {
     l.pessoa_id
       ? supabase.from("pessoas").select("nome").eq("id", l.pessoa_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    l.grupo_parcelas_id
+      ? supabase.from("lancamentos").select("parcela_num, data_pagamento").eq("grupo_parcelas_id", l.grupo_parcelas_id)
+      : Promise.resolve({ data: null }),
   ]);
+
+  // Para a exclusão perguntar o alcance e avisar das parcelas já pagas.
+  let resumoParcelas: ResumoParcelas | undefined;
+  if (grupo.data && l.parcela_num && l.parcela_total) {
+    const seguintes = grupo.data.filter((p) => (p.parcela_num ?? 0) >= (l.parcela_num ?? 0));
+    resumoParcelas = {
+      numero: l.parcela_num,
+      total: l.parcela_total,
+      seguintes: seguintes.length,
+      todas: grupo.data.length,
+      pagasSeguintes: seguintes.filter((p) => p.data_pagamento && p.parcela_num !== l.parcela_num).length,
+      pagasTodas: grupo.data.filter((p) => p.data_pagamento && p.parcela_num !== l.parcela_num).length,
+    };
+  }
   const nomeConta = new Map(
     (contas.data ?? []).map((c) => [c.id, c.instituicao ? `${c.instituicao} · ${c.nome}` : c.nome]),
   );
@@ -138,12 +156,21 @@ async function Detalhe({ params, searchParams }: Props) {
         </section>
       )}
 
-      <Link
-        href={`/lancamentos/${l.id}/editar?voltar=${encodeURIComponent(voltar)}`}
-        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-line bg-surface px-4 font-semibold hover:border-muted"
-      >
-        Editar lançamento
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href={`/lancamentos/${l.id}/editar?voltar=${encodeURIComponent(voltar)}`}
+          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-line bg-surface px-4 font-semibold hover:border-muted"
+        >
+          Editar
+        </Link>
+        <Link
+          href={`/lancamentos/novo?duplicar=${l.id}`}
+          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-line bg-surface px-4 font-semibold hover:border-muted"
+        >
+          Duplicar
+        </Link>
+      </div>
+      <ExcluirLancamento id={l.id} voltar={voltar} parcelas={resumoParcelas} />
 
       <Link href={voltar} className="inline-flex min-h-11 items-center font-semibold text-accent">
         ← Voltar para a lista

@@ -285,3 +285,42 @@ export async function editarLancamento(
   if (alteradas > 1) url.searchParams.set("alteradas", String(alteradas));
   redirect(`${url.pathname}${url.search}`);
 }
+
+export type EstadoExcluirLancamento = { mensagem?: string };
+
+/**
+ * Exclui um lançamento (sessão 17). Numa parcela, o alcance diz quais saem:
+ * "esta", "seguintes" (esta e as de número maior) ou "todas" (a compra inteira,
+ * inclusive as já pagas: a tela avisa antes).
+ */
+export async function excluirLancamento(
+  _anterior: EstadoExcluirLancamento,
+  formData: FormData,
+): Promise<EstadoExcluirLancamento> {
+  const id = String(formData.get("id") ?? "");
+  const alcance = String(formData.get("alcance") ?? "esta");
+  const voltar = destinoSeguro(String(formData.get("voltar") ?? ""), "/lancamentos");
+  const supabase = await createClient();
+  const { data: atual } = await supabase
+    .from("lancamentos")
+    .select("id, grupo_parcelas_id, parcela_num")
+    .eq("id", id)
+    .maybeSingle();
+  if (!atual) return { mensagem: "Não encontramos esse lançamento. Ele pode ter sido removido." };
+
+  let consulta = supabase.from("lancamentos").delete({ count: "exact" });
+  if (atual.grupo_parcelas_id && alcance === "todas") {
+    consulta = consulta.eq("grupo_parcelas_id", atual.grupo_parcelas_id);
+  } else if (atual.grupo_parcelas_id && atual.parcela_num && alcance === "seguintes") {
+    consulta = consulta.eq("grupo_parcelas_id", atual.grupo_parcelas_id).gte("parcela_num", atual.parcela_num);
+  } else {
+    consulta = consulta.eq("id", id);
+  }
+  const { error, count } = await consulta;
+  if (error) return { mensagem: mensagemDeErro(error) };
+
+  const url = new URL(voltar, "http://x");
+  url.searchParams.set("aviso", "excluido");
+  if ((count ?? 1) > 1) url.searchParams.set("alteradas", String(count));
+  redirect(`${url.pathname}${url.search}`);
+}
