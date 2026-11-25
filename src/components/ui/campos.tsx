@@ -119,6 +119,7 @@ export function SelecaoAgrupada({
   grupos,
   valorInicial,
   vazio = "Escolha…",
+  opcional = false,
   erro,
   dica,
   ajuda,
@@ -128,6 +129,8 @@ export function SelecaoAgrupada({
   grupos: GrupoDeOpcoes[];
   valorInicial?: string;
   vazio?: string;
+  /** Campo opcional: a opção vazia pode ser escolhida de novo. */
+  opcional?: boolean;
   erro?: string;
   dica?: string;
   ajuda?: React.ReactNode;
@@ -143,7 +146,7 @@ export function SelecaoAgrupada({
         aria-describedby={erro || dica ? `${id}-ajuda` : undefined}
         className={estiloCampo(erro)}
       >
-        <option value="" disabled>
+        <option value="" disabled={!opcional}>
           {vazio}
         </option>
         {grupos.map((g) =>

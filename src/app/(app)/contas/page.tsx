@@ -189,9 +189,27 @@ async function ListaDeContas() {
   );
 }
 
-export default function PaginaContas() {
+async function AvisoLancado({ searchParams }: { searchParams: Promise<{ lancado?: string }> }) {
+  const { lancado } = await searchParams;
+  if (lancado !== "despesa" && lancado !== "receita") return null;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-pos/10 px-4 py-3" role="status">
+      <p className="font-semibold text-pos">
+        {lancado === "despesa" ? "Despesa salva." : "Receita salva."} Os saldos abaixo já estão atualizados.
+      </p>
+      <Link href="/lancamentos/novo" className="text-sm font-semibold text-accent underline-offset-4 hover:underline">
+        Lançar outro
+      </Link>
+    </div>
+  );
+}
+
+export default function PaginaContas({ searchParams }: { searchParams: Promise<{ lancado?: string }> }) {
   return (
     <div className="flex flex-col gap-6">
+      <Suspense fallback={null}>
+        <AvisoLancado searchParams={searchParams} />
+      </Suspense>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-extrabold tracking-tight">Contas</h1>
         <Link
