@@ -2,6 +2,8 @@
 
 Sobra Vida · escrito em 24/11/2026 · fontes: documento de produto (regras R1 a R12, telas) e as anotações da fase. A planilha original não foi consultada.
 
+**Status: concluída em 26/11/2026.** Teste de aceite com dados de teste: um mês lançado pelo celular, com transferência, compra em 3 parcelas e conta atrasada paga com multa e juros; todos os números bateram. Extras pedidos pelo usuário: instituição e dados bancários nas contas, pessoas (clientes e fornecedores), juros e multa em percentual.
+
 ## Objetivo e critério de pronto
 
 A F2 entrega o uso do dia a dia: cadastrar as contas e lançar receitas, despesas e transferências, pelo celular ou pelo computador.
