@@ -6,8 +6,9 @@ import { connection } from "next/server";
 import { Ajuda } from "@/components/ui/ajuda";
 import { Valor } from "@/components/ui/valor";
 import { formatarData, hojeEmSaoPaulo, intervaloDoMes, nomeDoMes } from "@/lib/datas";
-import { formatarPercentual, resumir, type Resumo } from "@/lib/relatorios";
+import { formatarPercentual, resumir, serieDeMeses, ultimosMeses, type Resumo } from "@/lib/relatorios";
 import { createClient } from "@/lib/supabase/server";
+import { GraficoResultado } from "./grafico-resultado";
 import { Vencimentos } from "./vencimentos";
 
 export const metadata: Metadata = {
@@ -167,14 +168,23 @@ async function Painel() {
   const ano = Number(hoje.slice(0, 4));
   const mes = Number(hoje.slice(5, 7));
 
-  const [{ data: perfil }, { count: lancamentos }, saldos, caixa, previsto, encargos] = await Promise.all([
+  const meses6 = ultimosMeses(hoje, 6);
+  const anoAnterior = meses6[0].ano < ano ? meses6[0].ano : null;
+  const [{ data: perfil }, { count: lancamentos }, saldos, caixa, previsto, encargos, caixaAnterior] = await Promise.all([
     supabase.from("perfis").select("nome").eq("id", usuarioId).single(),
     supabase.from("lancamentos").select("id", { count: "exact", head: true }),
     supabase.rpc("saldos_contas", { p_data_atual: hoje, p_data_prevista: fim }),
     supabase.rpc("resultado_mensal", { p_ano: ano, p_visao: "caixa" }),
     supabase.rpc("resultado_mensal", { p_ano: ano, p_visao: "previsto" }),
     supabase.rpc("encargos_por_mes", { p_ano: ano }),
+    anoAnterior
+      ? supabase.rpc("resultado_mensal", { p_ano: anoAnterior, p_visao: "caixa" })
+      : Promise.resolve({ data: [], error: null }),
   ]);
+  const serie = serieDeMeses(meses6, {
+    [ano]: caixa.data ?? [],
+    ...(anoAnterior ? { [anoAnterior]: caixaAnterior.data ?? [] } : {}),
+  });
   const centavos = (v: number | string) => Math.round(Number(v) * 100);
   const enc = encargos.data ?? [];
   const jurosDoMes = enc.filter((e) => e.mes === mes).reduce((s, e) => s + centavos(e.juros_pagos) + centavos(e.multas_pagas), 0) / 100;
@@ -205,6 +215,10 @@ async function Painel() {
             <Vencimentos hoje={hoje} />
           </Suspense>
           <ResultadoDoMes mes={inicio} caixa={resumir(caixa.data ?? [], mes)} previsto={resumir(previsto.data ?? [], mes)} />
+          <section className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4" aria-label="Últimos 6 meses">
+            <h2 className="font-display text-lg font-bold">Quanto sobrou nos últimos 6 meses</h2>
+            <GraficoResultado meses={serie} />
+          </section>
           <JurosDoMes mes={nomeDoMes(inicio).split(" ")[0]} doMes={jurosDoMes} doAno={jurosDoAno} economia={economia} />
         </>
       )}

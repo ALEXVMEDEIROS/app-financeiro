@@ -10,6 +10,10 @@
   --pos: #17784a;
   --neg: #bf3d2a;
   --warn: #b7791f;
+  /* Gráfico: validados (dataviz) contra a superfície clara; o sinal também vem da posição e do rótulo. */
+  --grafico-pos: #17784a;
+  --grafico-neg: #bf3d2a;
+  --grafico-grade: #e3e9ec;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +27,9 @@
     --pos: #4fd08a;
     --neg: #f2836f;
     --warn: #e5b45a;
+    --grafico-pos: #2f9e63;
+    --grafico-neg: #e06a52;
+    --grafico-grade: #22343c;
     color-scheme: dark;
   }
 }

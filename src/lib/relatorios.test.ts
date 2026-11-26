@@ -31,3 +31,40 @@ describe("formatarPercentual", () => {
     expect(formatarPercentual(null)).toBe("—");
   });
 });
+
+import { escalaComZero, passoRedondo, serieDeMeses, ultimosMeses } from "./relatorios";
+
+describe("ultimosMeses", () => {
+  it("6 meses atravessando o ano", () => {
+    expect(ultimosMeses("2027-02-10", 6)).toEqual([
+      { ano: 2026, mes: 9 }, { ano: 2026, mes: 10 }, { ano: 2026, mes: 11 },
+      { ano: 2026, mes: 12 }, { ano: 2027, mes: 1 }, { ano: 2027, mes: 2 },
+    ]);
+  });
+});
+
+describe("serieDeMeses", () => {
+  it("resume cada mês e marca a virada do ano no rótulo", () => {
+    const s = serieDeMeses([{ ano: 2026, mes: 12 }, { ano: 2027, mes: 1 }], {
+      2026: [{ natureza: "receita", mes: 12, valor: "100" }, { natureza: "despesa", mes: 12, valor: "30.5" }],
+      2027: [{ natureza: "despesa", mes: 1, valor: 50 }],
+    });
+    expect(s).toEqual([
+      { ano: 2026, mes: 12, rotulo: "dez", receitas: 100, despesas: 30.5, resultado: 69.5 },
+      { ano: 2027, mes: 1, rotulo: "jan/27", receitas: 0, despesas: 50, resultado: -50 },
+    ]);
+  });
+});
+
+describe("escala do gráfico", () => {
+  it("passos redondos", () => {
+    expect(passoRedondo(3750)).toBe(1000);
+    expect(passoRedondo(9000)).toBe(2500);
+    expect(passoRedondo(120)).toBe(50);
+  });
+  it("inclui o zero e cobre negativos", () => {
+    expect(escalaComZero([112.47, 326.67])).toEqual({ min: 0, max: 400, marcas: [0, 100, 200, 300, 400] });
+    expect(escalaComZero([-500, 1500])).toEqual({ min: -500, max: 1500, marcas: [-500, 0, 500, 1000, 1500] });
+    expect(escalaComZero([0, 0])).toEqual({ min: 0, max: 1, marcas: [0, 0.25, 0.5, 0.75, 1] });
+  });
+});
