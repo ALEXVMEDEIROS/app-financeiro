@@ -233,7 +233,9 @@ export async function editarLancamento(
 
   const campos = { ...camposDoFormulario(f, pessoa.id), valor: f.valor as number };
   const agora = new Date().toISOString();
-  const pagamentoJunto = atual.data_pagamento !== null && atual.data_pagamento === atual.data_vencimento;
+  // Nasceu pago (pagamento = vencimento): a data do pagamento acompanha, mas nunca vai para o futuro.
+  const pagamentoJunto =
+    atual.data_pagamento !== null && atual.data_pagamento === atual.data_vencimento && f.data <= hojeEmSaoPaulo();
   let alteradas = 1;
 
   if (atual.grupo_parcelas_id && atual.parcela_num && (alcance === "seguintes" || alcance === "todas")) {

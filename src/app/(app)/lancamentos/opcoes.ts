@@ -13,7 +13,7 @@ export async function opcoesDoFormulario(manter: { contas?: string[]; categoria?
 
   const [contas, grupos, categorias, centros, formas, pessoas] = await Promise.all([
     supabase.from("contas_financeiras").select("id, instituicao, nome").or(ativasOu(contasMantidas)),
-    supabase.from("grupos").select("id, nome, natureza, ordem"),
+    supabase.from("grupos").select("id, nome, natureza, ordem, ativo"),
     supabase
       .from("categorias")
       .select("id, nome, grupo_id")
@@ -31,7 +31,8 @@ export async function opcoesDoFormulario(manter: { contas?: string[]; categoria?
   const listaCategorias: CategoriaOpcao[] = (categorias.data ?? [])
     .flatMap((c) => {
       const g = gruposPorId.get(c.grupo_id);
-      return g
+      // Categoria de grupo desativado só fica se for a do lançamento em edição.
+      return g && (g.ativo || c.id === manter.categoria)
         ? [{ id: c.id, nome: c.nome, grupo: g.nome, natureza: g.natureza as "receita" | "despesa", ordem: g.ordem }]
         : [];
     })

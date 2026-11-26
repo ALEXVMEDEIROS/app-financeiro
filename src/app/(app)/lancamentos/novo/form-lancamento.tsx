@@ -80,6 +80,8 @@ export function FormLancamento({
   const transferencia = tipo === "transferencia";
   const [valor, setValor] = useState<number | null>(preenchido?.valor ?? null);
   const [qtdParcelas, setQtdParcelas] = useState("1");
+  // Alcance da edição de parcela: controlado, para não voltar a "só esta" depois de um erro.
+  const [alcance, setAlcance] = useState("esta");
   const n = Number(qtdParcelas);
   const parcelado = !edicao && !transferencia && Number.isInteger(n) && n >= 2 && n <= 48;
 
@@ -431,7 +433,8 @@ export function FormLancamento({
                 type="radio"
                 name="alcance"
                 value={o.valor}
-                defaultChecked={o.valor === "esta"}
+                checked={alcance === o.valor}
+                onChange={() => setAlcance(o.valor)}
                 className="h-5 w-5 accent-[var(--accent)]"
               />
               <span className="font-semibold">{o.rotulo}</span>
