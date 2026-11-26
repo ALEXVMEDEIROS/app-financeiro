@@ -388,6 +388,63 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      encargos_por_mes: {
+        Args: { p_ano: number }
+        Returns: {
+          descontos_concedidos: number
+          descontos_obtidos: number
+          juros_pagos: number
+          juros_recebidos: number
+          mes: number
+          multas_pagas: number
+          multas_recebidas: number
+        }[]
+      }
+      extrato_conta: {
+        Args: { p_conta: string; p_fim: string; p_inicio: string }
+        Returns: {
+          categoria: string
+          data: string
+          lancamento_id: string
+          observacao: string
+          ordem: number
+          outra_conta: string
+          pessoa: string
+          saldo: number
+          tipo: string
+          valor: number
+        }[]
+      }
+      fluxo_diario: {
+        Args: {
+          p_conta?: string
+          p_fim: string
+          p_hoje: string
+          p_inicio: string
+        }
+        Returns: {
+          dia: string
+          entradas: number
+          previsto: boolean
+          saidas: number
+          saldo: number
+        }[]
+      }
+      movimentos_contas: {
+        Args: never
+        Returns: {
+          categoria_id: string
+          conta_id: string
+          data_pagamento: string
+          data_vencimento: string
+          delta: number
+          lancamento_id: string
+          observacao: string
+          outra_conta_id: string
+          pessoa_id: string
+          tipo: string
+        }[]
+      }
       resultado_mensal: {
         Args: { p_ano: number; p_visao?: string }
         Returns: {
