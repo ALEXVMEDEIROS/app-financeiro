@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { Ajuda } from "@/components/ui/ajuda";
 import { createClient } from "@/lib/supabase/server";
+import { alternarCategoria, alternarGrupo } from "./acoes";
+import { NomeEditavel, NovaCategoria, NovoGrupo } from "./formularios";
 
 export const metadata: Metadata = { title: "Plano de contas · Sobra Vida", robots: { index: false } };
 
@@ -80,13 +82,21 @@ async function Plano({ searchParams }: { searchParams: Parametros }) {
           const ativas = lista.filter((c) => c.ativa);
           const inativas = lista.filter((c) => !c.ativa);
           return (
-            <section key={g.id} className="flex flex-col gap-2" aria-label={g.nome}>
-              <h2 className="flex items-baseline justify-between gap-3 border-b border-line pb-1">
-                <span className={`font-display text-lg font-bold ${g.ativo ? "" : "text-muted line-through"}`}>
-                  {g.nome}
-                </span>
-                <span className="text-xs font-semibold text-muted">
+            <section key={g.id} className={`flex flex-col gap-2 ${g.ativo ? "" : "opacity-70"}`} aria-label={g.nome}>
+              <h2 className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-line pb-1">
+                <NomeEditavel
+                  id={g.id}
+                  tabela="grupos"
+                  nome={g.nome}
+                  className={`font-display text-lg font-bold ${g.ativo ? "" : "text-muted line-through"}`}
+                />
+                <span className="flex items-baseline gap-3 text-xs font-semibold text-muted">
                   {g.ativo ? `${ativas.length} ${ativas.length === 1 ? "categoria" : "categorias"}` : "Grupo desativado"}
+                  <form action={alternarGrupo.bind(null, g.id, !g.ativo)}>
+                    <button type="submit" className="min-h-8 font-semibold text-accent underline-offset-4 hover:underline">
+                      {g.ativo ? "Desativar grupo" : "Reativar grupo"}
+                    </button>
+                  </form>
                 </span>
               </h2>
               {lista.length === 0 ? (
@@ -96,23 +106,41 @@ async function Plano({ searchParams }: { searchParams: Parametros }) {
                   {[...ativas, ...inativas].map((c) => {
                     const n = usosPorCategoria.get(c.id) ?? 0;
                     return (
-                      <li key={c.id} className={`flex items-center justify-between gap-3 px-4 py-3 ${c.ativa ? "" : "opacity-60"}`}>
-                        <span className="min-w-0 truncate font-semibold">
-                          {c.nome}
-                          {!c.ativa && <span className="ml-2 text-xs font-normal text-muted">desativada</span>}
+                      <li
+                        key={c.id}
+                        className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 ${c.ativa ? "" : "opacity-60"}`}
+                      >
+                        <span className="flex min-w-0 flex-1 items-baseline gap-2 font-semibold">
+                          <NomeEditavel id={c.id} tabela="categorias" nome={c.nome} />
+                          {!c.ativa && <span className="shrink-0 text-xs font-normal text-muted">desativada</span>}
                         </span>
-                        <span className="shrink-0 text-xs text-muted tabular-nums">
+                        <span className="flex shrink-0 items-center gap-3 text-xs text-muted tabular-nums">
                           {n === 0 ? "sem uso" : `${n} ${n === 1 ? "lançamento" : "lançamentos"}`}
+                          <form action={alternarCategoria.bind(null, c.id, !c.ativa)}>
+                            <button
+                              type="submit"
+                              className="min-h-8 font-semibold text-accent underline-offset-4 hover:underline"
+                              aria-label={`${c.ativa ? "Desativar" : "Reativar"} ${c.nome}`}
+                            >
+                              {c.ativa ? "Desativar" : "Reativar"}
+                            </button>
+                          </form>
                         </span>
                       </li>
                     );
                   })}
                 </ul>
               )}
+              {g.ativo && <NovaCategoria grupoId={g.id} />}
             </section>
           );
         })
       )}
+      <NovoGrupo natureza={natureza} />
+      <p className="text-sm text-muted">
+        Nada é apagado: o que você desativa sai das listas do lançamento, mas os lançamentos antigos
+        continuam com a categoria e entram nos relatórios.
+      </p>
     </div>
   );
 }
