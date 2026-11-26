@@ -240,10 +240,33 @@ async function Painel() {
   );
 }
 
-export default function PaginaPainel() {
+const AVISOS: Record<string, string> = {
+  quitado: "Pagamento registrado. Os números abaixo já estão atualizados.",
+  desfeito: "Pagamento desfeito: o lançamento voltou a ficar em aberto.",
+  editado: "Alterações salvas.",
+  excluido: "Lançamento excluído.",
+};
+
+async function Aviso({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
+  const { aviso } = await searchParams;
+  const texto = aviso ? AVISOS[aviso] : undefined;
+  if (!texto) return null;
   return (
-    <Suspense fallback={<p className="text-muted">Carregando…</p>}>
-      <Painel />
-    </Suspense>
+    <p className="mx-auto mb-4 max-w-3xl rounded-lg bg-pos/10 px-4 py-3 font-semibold text-pos sm:mx-0" role="status">
+      {texto}
+    </p>
+  );
+}
+
+export default function PaginaPainel({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
+  return (
+    <>
+      <Suspense fallback={null}>
+        <Aviso searchParams={searchParams} />
+      </Suspense>
+      <Suspense fallback={<p className="text-muted">Carregando…</p>}>
+        <Painel />
+      </Suspense>
+    </>
   );
 }
