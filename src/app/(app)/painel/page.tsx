@@ -9,6 +9,7 @@ import { formatarData, hojeEmSaoPaulo, intervaloDoMes, nomeDoMes } from "@/lib/d
 import { formatarPercentual, resumir, serieDeMeses, ultimosMeses, type Resumo } from "@/lib/relatorios";
 import { createClient } from "@/lib/supabase/server";
 import { GraficoResultado } from "./grafico-resultado";
+import { OrigemDosJuros } from "./origem-juros";
 import { Vencimentos } from "./vencimentos";
 
 export const metadata: Metadata = {
@@ -133,7 +134,13 @@ function ResultadoDoMes({ mes, caixa, previsto }: { mes: string; caixa: Resumo; 
   );
 }
 
-function JurosDoMes({ mes, doMes, doAno, economia }: { mes: string; doMes: number; doAno: number; economia: number }) {
+function JurosDoMes({ mes, doMes, doAno, economia, children }: {
+  mes: string;
+  doMes: number;
+  doAno: number;
+  economia: number;
+  children?: React.ReactNode;
+}) {
   return (
     <section className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-4" aria-label="Juros e multas">
       <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">
@@ -152,6 +159,7 @@ function JurosDoMes({ mes, doMes, doAno, economia }: { mes: string; doMes: numbe
           </>
         )}
       </p>
+      {children}
     </section>
   );
 }
@@ -219,7 +227,13 @@ async function Painel() {
             <h2 className="font-display text-lg font-bold">Quanto sobrou nos últimos 6 meses</h2>
             <GraficoResultado meses={serie} />
           </section>
-          <JurosDoMes mes={nomeDoMes(inicio).split(" ")[0]} doMes={jurosDoMes} doAno={jurosDoAno} economia={economia} />
+          <JurosDoMes mes={nomeDoMes(inicio).split(" ")[0]} doMes={jurosDoMes} doAno={jurosDoAno} economia={economia}>
+            {jurosDoMes > 0 && (
+              <Suspense fallback={null}>
+                <OrigemDosJuros inicio={inicio} fim={fim} />
+              </Suspense>
+            )}
+          </JurosDoMes>
         </>
       )}
     </div>
