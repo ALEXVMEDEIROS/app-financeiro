@@ -388,6 +388,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      resultado_mensal: {
+        Args: { p_ano: number; p_visao?: string }
+        Returns: {
+          categoria: string
+          categoria_ativa: boolean
+          categoria_id: string
+          grupo: string
+          grupo_ativo: boolean
+          grupo_id: string
+          grupo_ordem: number
+          mes: number
+          natureza: string
+          valor: number
+        }[]
+      }
       saldos_contas: {
         Args: { p_data_atual: string; p_data_prevista: string }
         Returns: {
