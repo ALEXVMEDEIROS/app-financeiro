@@ -29,7 +29,7 @@ O menu ganha **Relatórios** (Resultado, Fluxo de caixa, Juros e multas). No cel
 | Onde calcular | Funções no banco, como a `saldos_contas` da F2, com `security invoker` (a proteção por usuário vale) e "hoje" enviado pelo app | Um único cálculo, igual em todas as telas; o ano inteiro é somado no banco, sem trazer milhares de lançamentos ao celular |
 | Visão caixa (R3) | Só lançamentos pagos, pela **data de pagamento**, pelo valor efetivo (valor + juros + multa − desconto) | É o dinheiro que de fato entrou e saiu |
 | Visão previsto (R3) | Todos os lançamentos, pela **data de vencimento**: valor efetivo se pago, valor original se em aberto | Mostra o mês como planejado, inclusive o que falta pagar |
-| Juros e multas na DRE (R12) | Juros e multas saem da categoria de origem e aparecem numa linha própria: "Juros e multas por atraso" (grupo Despesas financeiras) nas despesas, "Juros e multas recebidos" nas receitas. O desconto reduz a própria categoria | O documento de produto pede os juros em Despesas financeiras; assim o IPTU continua mostrando o valor do imposto, e o custo do atraso fica visível. **Decisão em aberto 1** |
+| Juros e multas na DRE (R12) | Juros e multas saem da categoria de origem e aparecem numa linha própria: "Juros e multas por atraso" (grupo Despesas financeiras) nas despesas, "Juros e multas recebidos" nas receitas. O desconto reduz a própria categoria | O documento de produto pede os juros em Despesas financeiras; assim o IPTU continua mostrando o valor do imposto, e o custo do atraso fica visível. Decidido pelo usuário em 26/11/2026 |
 | Transferências (R4) | Não entram no resultado; entram no fluxo de caixa e no extrato de cada conta | Mudam o saldo das contas, não o resultado |
 | Lucratividade (R7) | Resultado ÷ receitas do período, em %; "—" quando não houve receita | Evita divisão por zero e número sem sentido |
 | Gráfico | Barras simples em SVG próprio (receitas, despesas e resultado por mês), nas cores do tema claro e escuro | Sem biblioteca nova para um gráfico só; leve no celular |
@@ -94,11 +94,11 @@ Nenhuma tabela nova. Índices novos só se a revisão de desempenho mostrar nece
 
 São 24 sessões numeradas, dentro das 25 horas previstas.
 
-## Decisões em aberto (para o usuário)
+## Decisões do usuário (26/11/2026)
 
-1. **Juros e multas na DRE:** separar numa linha própria em Despesas financeiras (recomendado, como está no documento de produto) ou deixar dentro da categoria de origem (o IPTU pago com atraso apareceria como R$ 331,41 em IPTU).
-2. **Visão padrão:** abrir os relatórios na visão **caixa** (o que aconteceu, recomendado) ou na **prevista** (pelo vencimento, igual à lista de lançamentos).
-3. **Dados do teste de aceite da F2:** mantê-los até o aceite da F3 (recomendado), porque os totais de novembro já foram conferidos à mão e servem de gabarito; apagar só depois.
+1. **Juros e multas na DRE:** linha própria em Despesas financeiras ("Juros e multas por atraso") e em receitas ("Juros e multas recebidos"); a categoria de origem mostra o valor original menos o desconto.
+2. **Visão padrão:** caixa (pela data de pagamento); a tela permite alternar para previsto.
+3. **Dados do teste de aceite da F2:** ficam até o aceite da F3, como gabarito de novembro; apagar no fim da F3, com autorização.
 
 ## Pontos de atenção
 
