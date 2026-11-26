@@ -157,9 +157,15 @@ export function FormQuitar({
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="voltar" value={voltar} />
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="data_pagamento" className="text-sm font-semibold">
-          Data do pagamento
-        </label>
+        <span className="flex items-center gap-2">
+          <label htmlFor="data_pagamento" className="text-sm font-semibold">
+            Data do pagamento
+          </label>
+          <Ajuda titulo="Data do pagamento">
+            O dia em que o dinheiro saiu ou entrou de fato. Pode ser diferente do vencimento: a
+            diferença em dias é usada no cálculo dos juros em %.
+          </Ajuda>
+        </span>
         <input
           id="data_pagamento"
           name="data_pagamento"

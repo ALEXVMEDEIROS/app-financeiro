@@ -134,6 +134,12 @@ export function FormConta({
         grupos={[{ grupo: "", opcoes: TIPOS }]}
         valorInicial={inicial.tipo}
         erro={estado.erros?.tipo}
+        ajuda={
+          <Ajuda titulo="Tipo da conta">
+            Ajuda a separar o dinheiro do dia a dia (banco, carteira, caixa) do que está investido.
+            No patrimônio, as contas de investimento aparecem à parte.
+          </Ajuda>
+        }
       />
       <CampoValor
         id="saldo"
@@ -153,6 +159,12 @@ export function FormConta({
         rotulo="Data do saldo"
         valorInicial={inicial.data ?? hoje}
         erro={estado.erros?.data}
+        ajuda={
+          <Ajuda titulo="Data do saldo">
+            O dia em que a conta tinha o saldo informado acima. Use a data do extrato que você
+            consultou. Só os lançamentos a partir desse dia mexem no saldo.
+          </Ajuda>
+        }
       />
       <AvisoErro mensagem={estado.mensagem} />
       <div className="flex flex-wrap gap-3 pt-2">

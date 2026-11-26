@@ -168,6 +168,12 @@ export function FormLancamento({
         valorInicial={preenchido?.valor}
         erro={estado.erros?.valor}
         aoMudar={setValor}
+        ajuda={
+          <Ajuda titulo="Valor">
+            O valor original, sem juros nem multa. Se pagar com atraso ou desconto, informe isso na
+            hora de marcar como pago.
+          </Ajuda>
+        }
       />
 
       {!transferencia && (
@@ -181,7 +187,8 @@ export function FormLancamento({
           erro={estado.erros?.categoria}
           ajuda={
             <Ajuda titulo="Categoria">
-              Só aparecem as categorias de {tipo}. Você poderá criar as suas em Configurações.
+              Só aparecem as categorias de {tipo}. Para criar, renomear ou desativar, vá em
+              Configurações → Plano de contas.
             </Ajuda>
           }
         />
@@ -194,6 +201,13 @@ export function FormLancamento({
         grupos={opcoesContas}
         valorInicial={inicial.conta}
         erro={estado.erros?.conta}
+        ajuda={
+          <Ajuda titulo="Conta">
+            {tipo === "receita"
+              ? "Onde o dinheiro entrou: o banco, a carteira ou o caixa."
+              : "De onde o dinheiro saiu: o banco, a carteira ou o caixa."}
+          </Ajuda>
+        }
       />
 
       {transferencia && (
@@ -240,7 +254,8 @@ export function FormLancamento({
       </div>
 
       {!edicao && (
-      <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-line px-3">
+      <div className="flex items-center gap-2">
+      <label className="flex min-h-11 flex-1 cursor-pointer items-center gap-3 rounded-lg border border-line px-3">
         <input
           type="checkbox"
           name="pago"
@@ -253,6 +268,11 @@ export function FormLancamento({
           {parcelado ? "as demais ficam em aberto" : pago ? "" : "fica em aberto"}
         </span>
       </label>
+      <Ajuda titulo={textoPago}>
+        Marcado: o valor já entra no saldo de hoje. Desmarcado: fica em aberto e entra só no saldo
+        previsto, até você marcar como pago na lista de lançamentos.
+      </Ajuda>
+      </div>
       )}
 
       {/* Abre sozinho quando o erro está num campo daqui de dentro, para ele não ficar escondido. */}
@@ -354,7 +374,12 @@ export function FormLancamento({
                 opcional
                 valorInicial={textoInicial("centro")}
                 grupos={[{ grupo: "", opcoes: centros.map((c) => ({ valor: c.id, rotulo: c.rotulo })) }]}
-                ajuda={<Ajuda titulo="Centro de custo">Separa o que é de casa e o que é do trabalho nos relatórios.</Ajuda>}
+                ajuda={
+                  <Ajuda titulo="Centro de custo">
+                    Separa o que é de casa e o que é do trabalho (ou de cada atividade). Os
+                    relatórios mostram o resultado de cada centro.
+                  </Ajuda>
+                }
               />
               <SelecaoAgrupada
                 id="forma_pagamento"
@@ -363,11 +388,23 @@ export function FormLancamento({
                 opcional
                 valorInicial={textoInicial("forma")}
                 grupos={[{ grupo: "", opcoes: formas.map((f) => ({ valor: f.id, rotulo: f.rotulo })) }]}
+                ajuda={
+                  <Ajuda titulo="Forma de pagamento">
+                    Pix, boleto, cartão, dinheiro. Opcional: serve para saber, por exemplo, quanto
+                    passou pelo cartão no mês.
+                  </Ajuda>
+                }
               />
             </>
           )}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="observacao" className="text-sm font-semibold">Observação</label>
+            <span className="flex items-center gap-2">
+              <label htmlFor="observacao" className="text-sm font-semibold">Observação</label>
+              <Ajuda titulo="Observação">
+                Um detalhe para você lembrar depois, como o número da nota ou do pedido. A busca da
+                lista de lançamentos também procura aqui.
+              </Ajuda>
+            </span>
             <textarea
               id="observacao"
               name="observacao"

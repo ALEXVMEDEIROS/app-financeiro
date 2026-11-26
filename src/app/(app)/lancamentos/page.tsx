@@ -136,6 +136,9 @@ function BarraDeFiltros({ mes, filtros }: { mes: string; filtros: Filtros }) {
             />
             <span className="font-semibold">Só em aberto</span>
           </label>
+          <Ajuda titulo="Só em aberto">
+            Mostra só o que ainda não foi pago ou recebido, incluindo os atrasados do mês.
+          </Ajuda>
         </div>
         <div className="flex flex-wrap gap-3">
           <button type="submit" className="inline-flex min-h-11 items-center rounded-lg bg-accent px-4 font-semibold text-bg">
@@ -220,8 +223,12 @@ function AtrasadosAnteriores({ linhas, voltar }: { linhas: Linha[]; voltar: stri
   return (
     <section className="flex flex-col gap-2 rounded-xl border border-neg/40 bg-neg/5 p-3" aria-label="Atrasados de meses anteriores">
       <h2 className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <span className="font-display font-bold text-neg">
+        <span className="flex items-center gap-2 font-display font-bold text-neg">
           Atrasados de meses anteriores ({linhas.length})
+          <Ajuda titulo="Atrasados">
+            Contas que venceram em meses anteriores e ainda não foram marcadas como pagas. Toque
+            numa delas para quitar, com juros e multa se houver.
+          </Ajuda>
         </span>
         <span className="flex gap-3 text-sm">
           {aPagar > 0 && (
