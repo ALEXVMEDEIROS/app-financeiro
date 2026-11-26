@@ -8,6 +8,7 @@ import { Valor } from "@/components/ui/valor";
 import { formatarData, hojeEmSaoPaulo, intervaloDoMes, nomeDoMes } from "@/lib/datas";
 import { formatarPercentual, resumir, type Resumo } from "@/lib/relatorios";
 import { createClient } from "@/lib/supabase/server";
+import { Vencimentos } from "./vencimentos";
 
 export const metadata: Metadata = {
   title: "Painel · Sobra Vida",
@@ -131,6 +132,29 @@ function ResultadoDoMes({ mes, caixa, previsto }: { mes: string; caixa: Resumo; 
   );
 }
 
+function JurosDoMes({ mes, doMes, doAno, economia }: { mes: string; doMes: number; doAno: number; economia: number }) {
+  return (
+    <section className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-4" aria-label="Juros e multas">
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">
+        Juros e multas pagos em {mes}
+        <Ajuda titulo="Juros e multas">
+          O custo dos atrasos: juros e multas das contas pagas depois do vencimento, pela data do
+          pagamento. Descontos obtidos aparecem como economia.
+        </Ajuda>
+      </h2>
+      <Valor valor={doMes} tipo={doMes > 0 ? "despesa" : undefined} className="font-display text-2xl" />
+      <p className="text-xs text-muted">
+        No ano: {doAno > 0 ? <Valor valor={doAno} tipo="despesa" className="text-xs" /> : "nenhum"}
+        {economia > 0 && (
+          <>
+            {" "}· Descontos obtidos no ano: <Valor valor={economia} tipo="receita" className="text-xs" />
+          </>
+        )}
+      </p>
+    </section>
+  );
+}
+
 async function Painel() {
   await connection();
   const supabase = await createClient();
@@ -143,19 +167,25 @@ async function Painel() {
   const ano = Number(hoje.slice(0, 4));
   const mes = Number(hoje.slice(5, 7));
 
-  const [{ data: perfil }, { count: lancamentos }, saldos, caixa, previsto] = await Promise.all([
+  const [{ data: perfil }, { count: lancamentos }, saldos, caixa, previsto, encargos] = await Promise.all([
     supabase.from("perfis").select("nome").eq("id", usuarioId).single(),
     supabase.from("lancamentos").select("id", { count: "exact", head: true }),
     supabase.rpc("saldos_contas", { p_data_atual: hoje, p_data_prevista: fim }),
     supabase.rpc("resultado_mensal", { p_ano: ano, p_visao: "caixa" }),
     supabase.rpc("resultado_mensal", { p_ano: ano, p_visao: "previsto" }),
+    supabase.rpc("encargos_por_mes", { p_ano: ano }),
   ]);
+  const centavos = (v: number | string) => Math.round(Number(v) * 100);
+  const enc = encargos.data ?? [];
+  const jurosDoMes = enc.filter((e) => e.mes === mes).reduce((s, e) => s + centavos(e.juros_pagos) + centavos(e.multas_pagas), 0) / 100;
+  const jurosDoAno = enc.reduce((s, e) => s + centavos(e.juros_pagos) + centavos(e.multas_pagas), 0) / 100;
+  const economia = enc.reduce((s, e) => s + centavos(e.descontos_obtidos), 0) / 100;
 
   const primeiroNome = (perfil?.nome ?? "").split(" ")[0] || "por aqui";
   const ativas = (saldos.data ?? []).filter((c) => c.ativa);
   const soma = (campo: "saldo_atual" | "saldo_previsto") =>
     ativas.reduce((s, c) => s + Math.round(Number(c[campo]) * 100), 0) / 100;
-  const erro = saldos.error || caixa.error || previsto.error;
+  const erro = saldos.error || caixa.error || previsto.error || encargos.error;
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
@@ -171,7 +201,11 @@ async function Painel() {
       {ativas.length > 0 && (
         <>
           <Saldos hoje={soma("saldo_atual")} previsto={soma("saldo_previsto")} fimDoMes={fim} />
+          <Suspense fallback={<div className="h-32 animate-pulse rounded-xl bg-line" />}>
+            <Vencimentos hoje={hoje} />
+          </Suspense>
           <ResultadoDoMes mes={inicio} caixa={resumir(caixa.data ?? [], mes)} previsto={resumir(previsto.data ?? [], mes)} />
+          <JurosDoMes mes={nomeDoMes(inicio).split(" ")[0]} doMes={jurosDoMes} doAno={jurosDoAno} economia={economia} />
         </>
       )}
     </div>
