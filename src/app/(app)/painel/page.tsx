@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { Ajuda } from "@/components/ui/ajuda";
+import { Valor } from "@/components/ui/valor";
+import { formatarData, hojeEmSaoPaulo, intervaloDoMes, nomeDoMes } from "@/lib/datas";
+import { formatarPercentual, resumir, type Resumo } from "@/lib/relatorios";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -9,37 +14,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Painel provisório: primeiros passos. O painel de verdade (resultado do mês) vem na F3.
-async function BoasVindas() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const usuarioId = data?.claims?.sub;
-  if (!usuarioId) redirect("/entrar?proxima=/painel");
-
-  const [{ data: perfil }, { count: contas }, { count: lancamentos }] = await Promise.all([
-    supabase.from("perfis").select("nome").eq("id", usuarioId).single(),
-    supabase.from("contas_financeiras").select("id", { count: "exact", head: true }).eq("ativa", true),
-    supabase.from("lancamentos").select("id", { count: "exact", head: true }),
-  ]);
-
-  const primeiroNome = (perfil?.nome ?? "").split(" ")[0] || "por aqui";
+function PrimeirosPassos({ contas, lancamentos }: { contas: number; lancamentos: number }) {
   const passos = [
-    { feito: (contas ?? 0) > 0, texto: "Cadastre suas contas com o saldo de hoje", href: "/contas/nova" },
-    { feito: (lancamentos ?? 0) > 0, texto: "Lance suas receitas e despesas", href: "/lancamentos/novo" },
+    { feito: contas > 0, texto: "Cadastre suas contas com o saldo de hoje", href: "/contas/nova" },
+    { feito: lancamentos > 0, texto: "Lance suas receitas e despesas", href: "/lancamentos/novo" },
     { feito: false, texto: "Ajuste o plano de contas ao seu jeito", href: "/configuracoes/plano-de-contas" },
   ];
-
   return (
-    <div className="flex max-w-xl flex-col gap-4">
-      <h1 className="font-display text-3xl font-extrabold tracking-tight">Olá, {primeiroNome}!</h1>
-      {(contas ?? 0) === 0 ? (
-        <p className="text-lg text-muted">Para começar, cadastre a primeira conta: o banco, a carteira ou o caixa.</p>
-      ) : (
-        <p className="text-lg text-muted">
-          {contas} {contas === 1 ? "conta ativa" : "contas ativas"} e {lancamentos ?? 0}{" "}
-          {lancamentos === 1 ? "lançamento" : "lançamentos"} até agora.
-        </p>
-      )}
+    <section className="flex flex-col gap-2" aria-label="Primeiros passos">
+      <h2 className="font-display text-lg font-bold">Primeiros passos</h2>
       <ol className="flex flex-col gap-2">
         {passos.map((p, i) => (
           <li key={p.href}>
@@ -60,9 +43,137 @@ async function BoasVindas() {
           </li>
         ))}
       </ol>
-      <p className="text-sm text-muted">
-        Esta é uma versão de testes. O painel com resultado do mês e gráficos chega na próxima etapa.
-      </p>
+    </section>
+  );
+}
+
+function Saldos({ hoje, previsto, fimDoMes }: { hoje: number; previsto: number; fimDoMes: string }) {
+  const cartao = "flex flex-col gap-1 rounded-xl border border-line bg-surface p-4";
+  return (
+    <section className="grid gap-3 sm:grid-cols-2" aria-label="Saldos">
+      <Link href="/contas" className={`${cartao} hover:border-muted`}>
+        <span className="flex items-center gap-2 text-sm font-semibold text-muted">Saldo de hoje</span>
+        <Valor valor={hoje} className="font-display text-3xl" />
+        <span className="text-xs text-muted">Soma das contas ativas, com o que já foi pago ou recebido.</span>
+      </Link>
+      <Link href="/contas" className={`${cartao} hover:border-muted`}>
+        <span className="text-sm font-semibold text-muted">Previsto em {formatarData(fimDoMes).slice(0, 5)}</span>
+        <Valor valor={previsto} className="font-display text-3xl" />
+        <span className="text-xs text-muted">Hoje mais o que está em aberto até o fim do mês, inclusive atrasados.</span>
+      </Link>
+    </section>
+  );
+}
+
+function LinhaResumo({ rotulo, realizado, previsto, tipo }: {
+  rotulo: string;
+  realizado: number;
+  previsto: number;
+  tipo?: "receita" | "despesa";
+}) {
+  return (
+    <tr className="border-t border-line">
+      <th scope="row" className="py-2 text-left font-semibold">{rotulo}</th>
+      <td className="py-2 text-right"><Valor valor={realizado} tipo={tipo} /></td>
+      <td className="py-2 text-right"><Valor valor={previsto} tipo={tipo} className="opacity-80" /></td>
+    </tr>
+  );
+}
+
+function ResultadoDoMes({ mes, caixa, previsto }: { mes: string; caixa: Resumo; previsto: Resumo }) {
+  const sobra = caixa.resultado >= 0;
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4" aria-label="Resultado do mês">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="flex items-center gap-2 font-display text-lg font-bold first-letter:uppercase">
+          {nomeDoMes(mes)}
+          <Ajuda titulo="Resultado do mês">
+            Realizado: o que de fato entrou e saiu, pela data do pagamento. Previsto: o mês pelo
+            vencimento, incluindo o que ainda está em aberto. Transferências entre suas contas não
+            entram. Juros e multas pagos contam como despesa.
+          </Ajuda>
+        </h2>
+        <p className={`text-sm font-semibold ${sobra ? "text-pos" : "text-neg"}`}>
+          {sobra ? "Sobrou" : "Faltou"} até agora
+        </p>
+      </div>
+      <Valor valor={caixa.resultado} className="font-display text-3xl" />
+      <table className="w-full text-sm tabular-nums">
+        <thead>
+          <tr className="text-xs text-muted">
+            <th scope="col" className="pb-1 text-left font-semibold"><span className="sr-only">Item</span></th>
+            <th scope="col" className="pb-1 text-right font-semibold">Realizado</th>
+            <th scope="col" className="pb-1 text-right font-semibold">Previsto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <LinhaResumo rotulo="Receitas" realizado={caixa.receitas} previsto={previsto.receitas} tipo="receita" />
+          <LinhaResumo rotulo="Despesas" realizado={caixa.despesas} previsto={previsto.despesas} tipo="despesa" />
+          <LinhaResumo rotulo="Resultado" realizado={caixa.resultado} previsto={previsto.resultado} />
+          <tr className="border-t border-line text-muted">
+            <th scope="row" className="py-2 text-left font-semibold">
+              <span className="flex items-center gap-2">
+                Lucratividade
+                <Ajuda titulo="Lucratividade">
+                  Quanto das receitas sobrou: resultado ÷ receitas. Ex.: recebeu 1.000 e sobraram 200 = 20%.
+                </Ajuda>
+              </span>
+            </th>
+            <td className="py-2 text-right font-semibold">{formatarPercentual(caixa.lucratividade)}</td>
+            <td className="py-2 text-right font-semibold">{formatarPercentual(previsto.lucratividade)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <Link href="/lancamentos" className="self-start text-sm font-semibold text-accent underline-offset-4 hover:underline">
+        Ver os lançamentos do mês
+      </Link>
+    </section>
+  );
+}
+
+async function Painel() {
+  await connection();
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const usuarioId = data?.claims?.sub;
+  if (!usuarioId) redirect("/entrar?proxima=/painel");
+
+  const hoje = hojeEmSaoPaulo();
+  const { inicio, fim } = intervaloDoMes(hoje);
+  const ano = Number(hoje.slice(0, 4));
+  const mes = Number(hoje.slice(5, 7));
+
+  const [{ data: perfil }, { count: lancamentos }, saldos, caixa, previsto] = await Promise.all([
+    supabase.from("perfis").select("nome").eq("id", usuarioId).single(),
+    supabase.from("lancamentos").select("id", { count: "exact", head: true }),
+    supabase.rpc("saldos_contas", { p_data_atual: hoje, p_data_prevista: fim }),
+    supabase.rpc("resultado_mensal", { p_ano: ano, p_visao: "caixa" }),
+    supabase.rpc("resultado_mensal", { p_ano: ano, p_visao: "previsto" }),
+  ]);
+
+  const primeiroNome = (perfil?.nome ?? "").split(" ")[0] || "por aqui";
+  const ativas = (saldos.data ?? []).filter((c) => c.ativa);
+  const soma = (campo: "saldo_atual" | "saldo_previsto") =>
+    ativas.reduce((s, c) => s + Math.round(Number(c[campo]) * 100), 0) / 100;
+  const erro = saldos.error || caixa.error || previsto.error;
+
+  return (
+    <div className="flex max-w-3xl flex-col gap-4">
+      <h1 className="font-display text-3xl font-extrabold tracking-tight">Olá, {primeiroNome}!</h1>
+      {erro && (
+        <p className="rounded-lg bg-neg/10 px-3 py-2 text-neg" role="alert">
+          Não foi possível carregar todos os números agora. Atualize a página em alguns instantes.
+        </p>
+      )}
+      {ativas.length === 0 || (lancamentos ?? 0) === 0 ? (
+        <PrimeirosPassos contas={ativas.length} lancamentos={lancamentos ?? 0} />
+      ) : null}
+      {ativas.length > 0 && (
+        <>
+          <Saldos hoje={soma("saldo_atual")} previsto={soma("saldo_previsto")} fimDoMes={fim} />
+          <ResultadoDoMes mes={inicio} caixa={resumir(caixa.data ?? [], mes)} previsto={resumir(previsto.data ?? [], mes)} />
+        </>
+      )}
     </div>
   );
 }
@@ -70,7 +181,7 @@ async function BoasVindas() {
 export default function PaginaPainel() {
   return (
     <Suspense fallback={<p className="text-muted">Carregando…</p>}>
-      <BoasVindas />
+      <Painel />
     </Suspense>
   );
 }
