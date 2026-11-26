@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -8,35 +9,59 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Versão mínima do painel (F1): confirma que o login funciona e que o
-// cadastro automático criou o plano de contas. O painel de verdade vem na F3.
+// Painel provisório: primeiros passos. O painel de verdade (resultado do mês) vem na F3.
 async function BoasVindas() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const usuarioId = data?.claims?.sub;
   if (!usuarioId) redirect("/entrar?proxima=/painel");
 
-  const [{ data: perfil }, { count: grupos }, { count: categorias }] = await Promise.all([
+  const [{ data: perfil }, { count: contas }, { count: lancamentos }] = await Promise.all([
     supabase.from("perfis").select("nome").eq("id", usuarioId).single(),
-    supabase.from("grupos").select("*", { count: "exact", head: true }),
-    supabase.from("categorias").select("*", { count: "exact", head: true }),
+    supabase.from("contas_financeiras").select("id", { count: "exact", head: true }).eq("ativa", true),
+    supabase.from("lancamentos").select("id", { count: "exact", head: true }),
   ]);
 
   const primeiroNome = (perfil?.nome ?? "").split(" ")[0] || "por aqui";
+  const passos = [
+    { feito: (contas ?? 0) > 0, texto: "Cadastre suas contas com o saldo de hoje", href: "/contas/nova" },
+    { feito: (lancamentos ?? 0) > 0, texto: "Lance suas receitas e despesas", href: "/lancamentos/novo" },
+    { feito: false, texto: "Ajuste o plano de contas ao seu jeito", href: "/configuracoes/plano-de-contas" },
+  ];
 
   return (
     <div className="flex max-w-xl flex-col gap-4">
       <h1 className="font-display text-3xl font-extrabold tracking-tight">Olá, {primeiroNome}!</h1>
-      <p className="text-lg text-muted">Sua conta no Sobra Vida está ativa.</p>
-      <div className="rounded-xl border border-line bg-surface p-5">
-        <p className="font-semibold">Seu plano de contas já está pronto</p>
-        <p className="text-muted">
-          {grupos ?? 0} grupos e {categorias ?? 0} categorias, que você poderá ajustar quando as
-          telas de lançamento chegarem.
+      {(contas ?? 0) === 0 ? (
+        <p className="text-lg text-muted">Para começar, cadastre a primeira conta: o banco, a carteira ou o caixa.</p>
+      ) : (
+        <p className="text-lg text-muted">
+          {contas} {contas === 1 ? "conta ativa" : "contas ativas"} e {lancamentos ?? 0}{" "}
+          {lancamentos === 1 ? "lançamento" : "lançamentos"} até agora.
         </p>
-      </div>
+      )}
+      <ol className="flex flex-col gap-2">
+        {passos.map((p, i) => (
+          <li key={p.href}>
+            <Link
+              href={p.href}
+              className="flex min-h-11 items-center gap-3 rounded-xl border border-line bg-surface p-4 hover:border-muted"
+            >
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                  p.feito ? "bg-pos text-bg" : "bg-bg text-muted"
+                }`}
+                aria-hidden
+              >
+                {p.feito ? "✓" : i + 1}
+              </span>
+              <span className={`font-semibold ${p.feito ? "text-muted line-through" : ""}`}>{p.texto}</span>
+            </Link>
+          </li>
+        ))}
+      </ol>
       <p className="text-sm text-muted">
-        Esta é uma versão de testes. Os lançamentos e o painel completo vêm nas próximas etapas.
+        Esta é uma versão de testes. O painel com resultado do mês e gráficos chega na próxima etapa.
       </p>
     </div>
   );

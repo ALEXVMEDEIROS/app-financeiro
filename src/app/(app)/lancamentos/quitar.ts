@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { destinoSeguro } from "@/components/campo";
 import { dataValida, hojeEmSaoPaulo } from "@/lib/datas";
-import { lerValor } from "@/lib/dinheiro";
+import { lerValor, TEXTO_VALOR_MAXIMO, VALOR_MAXIMO } from "@/lib/dinheiro";
 import { mensagemDeErro } from "@/lib/erros-banco";
 import { valorEfetivo } from "@/lib/parcelas";
 import { createClient } from "@/lib/supabase/server";
@@ -24,7 +24,7 @@ function voltarCom(voltar: string, aviso: "quitado" | "desfeito"): never {
 function valorOpcional(texto: string): number | null {
   if (texto.trim() === "") return 0;
   const v = lerValor(texto);
-  return v === null || v < 0 ? null : v;
+  return v === null || v < 0 || v > VALOR_MAXIMO ? null : v;
 }
 
 /**
@@ -54,7 +54,7 @@ export async function quitarLancamento(_anterior: EstadoQuitar, formData: FormDa
   if (!dataValida(data)) erros.data = "Escolha uma data válida.";
   else if (data > hoje) erros.data = "A data do pagamento não pode ser depois de hoje.";
   if (!transferencia) {
-    const msg = "Informe um valor como 12,50, ou deixe em branco.";
+    const msg = `Informe um valor como 12,50, ou deixe em branco. ${TEXTO_VALOR_MAXIMO}`;
     if (juros === null) erros.juros = msg;
     if (multa === null) erros.multa = msg;
     if (desconto === null) erros.desconto = msg;

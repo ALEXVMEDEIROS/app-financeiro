@@ -7,6 +7,7 @@ const PADRAO: Record<string, string> = {
   "23505": "Já existe um cadastro com esse nome. Use outro nome.",
   "23503": "Este item está sendo usado por outros registros e não pode ser removido. Você pode desativá-lo.",
   "23514": "Algum dado não segue as regras do Sobra Vida. Confira os campos e tente de novo.",
+  "22003": "Valor grande demais. O valor máximo é R$ 999.999.999,99.",
   "42501": "Você não tem permissão para fazer isso. Entre de novo e tente outra vez.",
   "PGRST116": "Não encontramos esse registro. Ele pode ter sido removido.",
 };

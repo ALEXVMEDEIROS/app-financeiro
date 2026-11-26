@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { destinoSeguro } from "@/components/campo";
 import { dataValida, hojeEmSaoPaulo, somarMeses } from "@/lib/datas";
-import { lerValor } from "@/lib/dinheiro";
+import { lerValor, TEXTO_VALOR_MAXIMO, VALOR_MAXIMO } from "@/lib/dinheiro";
 import { mensagemDeErro } from "@/lib/erros-banco";
 import { dividirParcelas } from "@/lib/parcelas";
 import { createClient } from "@/lib/supabase/server";
@@ -102,6 +102,7 @@ function lerFormulario(formData: FormData) {
   const transferencia = tipo === "transferencia";
   const erros: NonNullable<EstadoLancamento["erros"]> = {};
   if (valor === null || valor <= 0) erros.valor = "Informe um valor maior que zero, como 150,00.";
+  else if (valor > VALOR_MAXIMO) erros.valor = TEXTO_VALOR_MAXIMO;
   if (!transferencia && !UUID.test(valores.categoria)) erros.categoria = "Escolha a categoria.";
   if (!UUID.test(valores.conta)) erros.conta = "Escolha a conta.";
   if (transferencia) {

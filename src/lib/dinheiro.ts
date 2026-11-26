@@ -62,3 +62,10 @@ export function lerValor(texto: string): number | null {
   if (!Number.isFinite(numero)) return null;
   return Math.round(numero * 100) / 100;
 }
+
+/**
+ * Maior valor aceito num lançamento ou saldo: R$ 999.999.999,99.
+ * O banco guarda até 12 dígitos inteiros; o limite deixa folga para somas.
+ */
+export const VALOR_MAXIMO = 999_999_999.99;
+export const TEXTO_VALOR_MAXIMO = "O valor máximo é R$ 999.999.999,99.";

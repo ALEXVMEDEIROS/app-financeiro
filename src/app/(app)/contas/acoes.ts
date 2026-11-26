@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { dataValida } from "@/lib/datas";
-import { lerValor } from "@/lib/dinheiro";
+import { lerValor, TEXTO_VALOR_MAXIMO, VALOR_MAXIMO } from "@/lib/dinheiro";
 import { mensagemDeErro } from "@/lib/erros-banco";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,6 +48,7 @@ export async function salvarConta(_anterior: EstadoConta, formData: FormData): P
   if (!TIPOS.includes(tipo as TipoConta)) erros.tipo = "Escolha o tipo da conta.";
   const saldo = textoSaldo === "" ? 0 : lerValor(textoSaldo);
   if (saldo === null) erros.saldo = "Informe um valor como 1.234,56 (use - na frente se estiver negativo).";
+  else if (Math.abs(saldo) > VALOR_MAXIMO) erros.saldo = TEXTO_VALOR_MAXIMO;
   if (!dataValida(data)) erros.data = "Escolha uma data válida.";
   if (Object.keys(erros).length > 0) return { erros };
 
