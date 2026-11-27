@@ -10,7 +10,8 @@ import { Celula, LinhaGrupo } from "./linhas";
 
 export const metadata: Metadata = { title: "Resultado do ano · Sobra Vida", robots: { index: false } };
 
-type Parametros = Promise<{ ano?: string }>;
+type Parametros = Promise<{ ano?: string; visao?: string }>;
+type Visao = "caixa" | "previsto";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -75,23 +76,48 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
   await connection();
   const hoje = hojeEmSaoPaulo();
   const anoHoje = Number(hoje.slice(0, 4));
-  const { ano: textoAno } = await searchParams;
+  const { ano: textoAno, visao: textoVisao } = await searchParams;
+  const visao: Visao = textoVisao === "previsto" ? "previsto" : "caixa";
+  // Endereço mantendo a visão escolhida (caixa é o padrão e não aparece).
+  const para = (a?: number, v: Visao = visao) => {
+    const p = new URLSearchParams();
+    if (a !== undefined) p.set("ano", String(a));
+    if (v === "previsto") p.set("visao", "previsto");
+    const t = p.toString();
+    return `/relatorios/resultado${t ? `?${t}` : ""}`;
+  };
   const pedido = Number(textoAno);
   const ano = Number.isInteger(pedido) && pedido >= 2000 && pedido <= 2100 ? pedido : anoHoje;
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("resultado_mensal", { p_ano: ano, p_visao: "caixa" });
-  const mesesMedia = mesesParaMedia(ano, hoje);
+  const { data, error } = await supabase.rpc("resultado_mensal", { p_ano: ano, p_visao: visao });
+  // No previsto o ano inteiro já tem valores (vencimentos futuros): média por 12.
+  const mesesMedia = visao === "previsto" ? 12 : mesesParaMedia(ano, hoje);
   const botao =
     "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-3 font-semibold hover:border-muted";
 
+  const seletor = (
+    <nav className="grid grid-cols-2 gap-1 rounded-lg bg-surface p-1 sm:w-80" aria-label="Visão">
+      {(["caixa", "previsto"] as const).map((v) => (
+        <Link
+          key={v}
+          href={para(ano === anoHoje ? undefined : ano, v)}
+          aria-current={visao === v ? "page" : undefined}
+          className={`flex min-h-11 items-center justify-center rounded-md text-sm font-semibold ${visao === v ? "bg-fg text-bg" : "text-muted"}`}
+        >
+          {v === "caixa" ? "Caixa" : "Previsto"}
+        </Link>
+      ))}
+    </nav>
+  );
+
   const navegacao = (
     <nav className="flex items-center gap-2" aria-label="Mudar de ano">
-      <Link href={`/relatorios/resultado?ano=${ano - 1}`} className={botao} aria-label="Ano anterior">‹</Link>
+      <Link href={para(ano - 1)} className={botao} aria-label="Ano anterior">‹</Link>
       <p className="min-w-0 flex-1 text-center font-display text-xl font-bold">{ano}</p>
-      <Link href={`/relatorios/resultado?ano=${ano + 1}`} className={botao} aria-label="Ano seguinte">›</Link>
+      <Link href={para(ano + 1)} className={botao} aria-label="Ano seguinte">›</Link>
       {ano !== anoHoje && (
-        <Link href="/relatorios/resultado" className={`${botao} text-sm`}>Este ano</Link>
+        <Link href={para()} className={`${botao} text-sm`}>Este ano</Link>
       )}
     </nav>
   );
@@ -100,6 +126,7 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
     return (
       <>
         {navegacao}
+        {seletor}
         <p className="rounded-lg bg-neg/10 px-3 py-2 text-neg" role="alert">
           Não foi possível montar o relatório agora. Atualize a página em alguns instantes.
         </p>
@@ -113,13 +140,17 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
   return (
     <>
       {navegacao}
+      {seletor}
       <p className="text-sm text-muted">
-        Visão caixa: o que de fato entrou e saiu, pela data do pagamento. Valores em reais.
+        {visao === "caixa"
+          ? "Caixa: o que de fato entrou e saiu, pela data do pagamento."
+          : "Previsto: o ano pelo vencimento, incluindo o que ainda está em aberto; o que foi pago entra com juros e descontos."}{" "}
+        Valores em reais.
         {mesesMedia > 0 && mesesMedia < 12 && ` A média considera ${mesesMedia} meses (até o mês atual).`}
       </p>
       {vazio ? (
         <p className="rounded-xl border border-dashed border-line bg-surface p-6 text-muted">
-          Nenhuma receita ou despesa paga em {ano}.
+          {visao === "caixa" ? `Nenhuma receita ou despesa paga em ${ano}.` : `Nenhuma receita ou despesa com vencimento em ${ano}.`}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line bg-surface">
