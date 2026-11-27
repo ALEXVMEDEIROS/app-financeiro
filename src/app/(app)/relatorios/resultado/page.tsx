@@ -106,7 +106,7 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
           aria-current={visao === v ? "page" : undefined}
           className={`flex min-h-11 items-center justify-center rounded-md text-sm font-semibold ${visao === v ? "bg-fg text-bg" : "text-muted"}`}
         >
-          {v === "caixa" ? "Caixa" : "Previsto"}
+          {v === "caixa" ? "Realizado" : "Previsto"}
         </Link>
       ))}
     </nav>
@@ -155,7 +155,7 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
       {seletor}
       <p className="text-sm text-muted">
         {visao === "caixa"
-          ? "Caixa: o que de fato entrou e saiu, pela data do pagamento."
+          ? "Realizado: o que de fato entrou e saiu, pela data do pagamento."
           : "Previsto: o ano pelo vencimento, incluindo o que ainda está em aberto; o que foi pago entra com juros e descontos."}{" "}
         Valores em reais.
         {mesesMedia > 0 && mesesMedia < 12 && ` A média considera ${mesesMedia} meses (até o mês atual).`}

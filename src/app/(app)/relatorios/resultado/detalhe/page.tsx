@@ -115,7 +115,7 @@ async function Detalhe({ searchParams }: { searchParams: Parametros }) {
     <div className="flex flex-col gap-4">
       <div>
         <p className="text-sm text-muted first-letter:uppercase">
-          {nomeDoMes(mesIso)} · {visao === "caixa" ? "caixa (pela data do pagamento)" : "previsto (pelo vencimento)"}
+          {nomeDoMes(mesIso)} · {visao === "caixa" ? "realizado (pela data do pagamento)" : "previsto (pelo vencimento)"}
         </p>
         <h2 className="font-display text-2xl font-bold">
           {categoria ?? grupo}
