@@ -46,3 +46,6 @@ next-env.d.ts
 # editores
 .vscode/
 .idea/
+
+# Dados reais convertidos da planilha (F4) nunca vão para o GitHub
+*.csv
