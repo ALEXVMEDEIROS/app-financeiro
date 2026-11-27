@@ -97,7 +97,7 @@ São 24 sessões numeradas, dentro das 25 horas previstas.
 ## Decisões do usuário (26/11/2026)
 
 1. **Juros e multas na DRE:** linha própria em Despesas financeiras ("Juros e multas por atraso") e em receitas ("Juros e multas recebidos"); a categoria de origem mostra o valor original menos o desconto.
-2. **Visão padrão:** caixa (pela data de pagamento); a tela permite alternar para previsto.
+2. **Visão padrão:** caixa (pela data de pagamento), mostrada na tela com o nome **"Realizado"** (pedido do usuário em 27/11/2026); a tela permite alternar para previsto.
 3. **Dados do teste de aceite da F2:** ficam até o aceite da F3, como gabarito de novembro; apagar no fim da F3, com autorização.
 
 ## Pontos de atenção
