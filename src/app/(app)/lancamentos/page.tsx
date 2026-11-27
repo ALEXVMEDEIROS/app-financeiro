@@ -430,6 +430,10 @@ export default function PaginaLancamentos({ searchParams }: { searchParams: Para
           + Novo
         </Link>
       </div>
+      <p className="-mt-2 flex flex-wrap gap-x-4 text-sm font-semibold">
+        <Link href="/relatorios/resultado" className="text-accent underline-offset-4 hover:underline">Resultado do ano</Link>
+        <Link href="/relatorios/fluxo" className="text-accent underline-offset-4 hover:underline">Fluxo de caixa</Link>
+      </p>
       <Suspense fallback={<p className="text-muted">Carregando lançamentos…</p>}>
         <ListaDoMes searchParams={searchParams} />
       </Suspense>

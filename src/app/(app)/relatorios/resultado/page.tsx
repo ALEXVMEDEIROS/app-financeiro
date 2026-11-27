@@ -6,6 +6,7 @@ import { Ajuda } from "@/components/ui/ajuda";
 import { hojeEmSaoPaulo } from "@/lib/datas";
 import { formatarPercentual, media, mesesParaMedia, montarDre } from "@/lib/relatorios";
 import { createClient } from "@/lib/supabase/server";
+import { AbasRelatorios } from "../abas";
 import { Celula, LinhaGrupo } from "./linhas";
 import { MesAMes } from "./mes-a-mes";
 
@@ -223,6 +224,7 @@ export default function PaginaResultadoDoAno({ searchParams }: { searchParams: P
           </Ajuda>
         </h1>
       </div>
+      <AbasRelatorios atual="/relatorios/resultado" />
       <Suspense fallback={<p className="text-muted">Montando o relatório…</p>}>
         <Relatorio searchParams={searchParams} />
       </Suspense>

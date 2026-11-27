@@ -225,6 +225,10 @@ export default function PaginaContas({
           + Nova conta
         </Link>
       </div>
+      <p className="-mt-2 flex flex-wrap gap-x-4 text-sm font-semibold">
+        <Link href="/relatorios/fluxo" className="text-accent underline-offset-4 hover:underline">Fluxo de caixa (saldo dia a dia)</Link>
+        <span className="font-normal text-muted">Toque numa conta para ver o extrato.</span>
+      </p>
       <Suspense fallback={<p className="text-muted">Carregando contas…</p>}>
         <ListaDeContas />
       </Suspense>

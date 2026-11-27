@@ -28,6 +28,11 @@ const ITENS: Item[] = [
     icone: <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true"><rect {...traco} x="3" y="6" width="18" height="13" rx="2" /><path {...traco} d="M3 10h18M15.5 15h2.5" /></svg>,
   },
   {
+    href: "/relatorios",
+    rotulo: "Relatórios",
+    icone: <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true"><path {...traco} d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>,
+  },
+  {
     href: "/configuracoes",
     rotulo: "Ajustes",
     icone: <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true"><circle {...traco} cx="12" cy="12" r="3" /><path {...traco} d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" /></svg>,
@@ -42,7 +47,7 @@ function ativo(caminho: string, href: string) {
 // o menu aparece sem item destacado (fallback do Suspense); o Next.js exige isso
 // em páginas com parte variável no endereço, como /contas/[id].
 
-/** Menu do cabeçalho (computador e tablet). */
+/** Menu do cabeçalho (computador; telas a partir de 1024 px). */
 export function MenuPrincipal() {
   return (
     <Suspense fallback={<MenuVisual caminho="" />}>
@@ -57,7 +62,7 @@ function MenuComEndereco() {
 
 function MenuVisual({ caminho }: { caminho: string }) {
   return (
-    <nav aria-label="Principal" className="hidden items-center gap-1 sm:flex">
+    <nav aria-label="Principal" className="hidden items-center gap-1 lg:flex">
       {ITENS.map((i) => (
         <Link
           key={i.href}
@@ -74,12 +79,26 @@ function MenuVisual({ caminho }: { caminho: string }) {
   );
 }
 
+/** Atalho de Configurações no cabeçalho do celular (a barra de baixo não tem espaço). */
+export function AjustesCelular() {
+  const ajustes = ITENS[4];
+  return (
+    <Link
+      href={ajustes.href}
+      aria-label="Configurações"
+      className="flex h-10 w-10 items-center justify-center rounded-lg border border-line text-muted hover:text-fg lg:hidden"
+    >
+      {ajustes.icone}
+    </Link>
+  );
+}
+
 /** Botão "Novo lançamento" do cabeçalho (computador e tablet). */
 export function BotaoNovoCabecalho() {
   return (
     <Link
       href="/lancamentos/novo"
-      className="hidden min-h-10 items-center rounded-lg bg-accent px-4 text-sm font-semibold text-bg sm:inline-flex"
+      className="hidden min-h-10 items-center rounded-lg bg-accent px-4 text-sm font-semibold text-bg lg:inline-flex"
     >
       + Novo lançamento
     </Link>
@@ -100,6 +119,7 @@ function BarraComEndereco() {
 }
 
 function BarraVisual({ caminho }: { caminho: string }) {
+  // No celular: Painel, Lançamentos, +, Contas, Relatórios. Configurações fica no cabeçalho.
   const [a, b, c, d] = ITENS;
   const link = (i: Item) => (
     <Link
@@ -117,7 +137,7 @@ function BarraVisual({ caminho }: { caminho: string }) {
   return (
     <nav
       aria-label="Principal"
-      className="fixed inset-x-0 bottom-0 z-20 flex items-center border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 flex items-center border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       {link(a)}
       {link(b)}

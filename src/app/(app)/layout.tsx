@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { BarraInferior, BotaoNovoCabecalho, MenuPrincipal } from "@/components/navegacao";
+import { AjustesCelular, BarraInferior, BotaoNovoCabecalho, MenuPrincipal } from "@/components/navegacao";
 import { createClient } from "@/lib/supabase/server";
 import { sair } from "./acoes";
 
@@ -23,7 +23,7 @@ async function Usuario() {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="hidden max-w-40 truncate text-sm text-muted lg:inline" title={nome}>
+      <span className="hidden max-w-40 truncate text-sm text-muted xl:inline" title={nome}>
         {nome}
       </span>
       <form action={sair}>
@@ -51,13 +51,14 @@ export default function LayoutAreaLogada({ children }: { children: React.ReactNo
           </div>
           <div className="flex items-center gap-3">
             <BotaoNovoCabecalho />
+            <AjustesCelular />
             <Suspense fallback={<div className="h-10 w-16" />}>
               <Usuario />
             </Suspense>
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-6 sm:pb-10">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-6 lg:pb-10">{children}</main>
       <BarraInferior />
     </div>
   );

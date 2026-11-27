@@ -7,6 +7,7 @@ import { Valor } from "@/components/ui/valor";
 import { diaDaSemana, formatarData, hojeEmSaoPaulo, intervaloDoMes, mesDoParametro, nomeDoMes, somarMeses } from "@/lib/datas";
 import { formatarNumero } from "@/lib/dinheiro";
 import { createClient } from "@/lib/supabase/server";
+import { AbasRelatorios } from "../abas";
 
 export const metadata: Metadata = { title: "Fluxo de caixa · Sobra Vida", robots: { index: false } };
 
@@ -216,6 +217,7 @@ export default function PaginaFluxo({ searchParams }: { searchParams: Parametros
           Transferências entre suas contas não entram, porque não mudam o total.
         </Ajuda>
       </h1>
+      <AbasRelatorios atual="/relatorios/fluxo" />
       <Suspense fallback={<p className="text-muted">Montando o fluxo…</p>}>
         <Fluxo searchParams={searchParams} />
       </Suspense>

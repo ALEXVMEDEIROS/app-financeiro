@@ -8,6 +8,7 @@ import { formatarData, hojeEmSaoPaulo } from "@/lib/datas";
 import { formatarNumero } from "@/lib/dinheiro";
 import { diasDeAtraso } from "@/lib/encargos";
 import { createClient } from "@/lib/supabase/server";
+import { AbasRelatorios } from "../abas";
 
 export const metadata: Metadata = { title: "Juros e multas · Sobra Vida", robots: { index: false } };
 
@@ -227,6 +228,7 @@ export default function PaginaJuros({ searchParams }: { searchParams: Parametros
           descontos obtidos e os juros e multas cobrados de clientes.
         </Ajuda>
       </h1>
+      <AbasRelatorios atual="/relatorios/juros" />
       <Suspense fallback={<p className="text-muted">Montando o relatório…</p>}>
         <Relatorio searchParams={searchParams} />
       </Suspense>
