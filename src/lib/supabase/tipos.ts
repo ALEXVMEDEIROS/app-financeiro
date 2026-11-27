@@ -425,8 +425,10 @@ export type Database = {
         Returns: {
           dia: string
           entradas: number
+          entradas_previstas: number
           previsto: boolean
           saidas: number
+          saidas_previstas: number
           saldo: number
         }[]
       }

@@ -95,6 +95,14 @@ begin
   select saldo into v from public.fluxo_diario('2026-12-01', '2026-12-31', '2026-11-24') where dia = '2026-12-05';
   if v = 1353 then res := res || 'fluxo_dezembro:ok '; else res := res || format('fluxo_dezembro:FALHA(%s) ', v); falhas := falhas + 1; end if;
 
+  -- ---------- realizado x previsto (sessão 14) ----------
+  select * into r from public.fluxo_diario('2026-11-01', '2026-11-30', '2026-11-24') where dia = '2026-11-24';
+  if r.saidas_previstas = 80 then res := res || 'previsto_atrasado_hoje:ok '; else res := res || format('previsto_atrasado_hoje:FALHA(%s) ', r.saidas_previstas); falhas := falhas + 1; end if;
+  select * into r from public.fluxo_diario('2026-11-01', '2026-11-30', '2026-11-24') where dia = '2026-11-10';
+  if r.saidas = 107 and r.saidas_previstas = 0 then res := res || 'realizado_pago:ok '; else res := res || format('realizado_pago:FALHA(%s %s) ', r.saidas, r.saidas_previstas); falhas := falhas + 1; end if;
+  select sum(entradas_previstas), sum(saidas_previstas) into v, w from public.fluxo_diario('2026-11-01', '2026-11-30', '2026-11-24');
+  if v = 0 and w = 380 then res := res || 'previsto_mes:ok '; else res := res || format('previsto_mes:FALHA(%s %s) ', v, w); falhas := falhas + 1; end if;
+
   -- ---------- encargos ----------
   select * into r from public.encargos_por_mes(2026) where mes = 11;
   if r.juros_pagos = 5 and r.multas_pagas = 2 and r.descontos_concedidos = 10 and r.descontos_obtidos = 0 then

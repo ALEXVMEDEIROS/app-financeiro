@@ -14,9 +14,19 @@ export const metadata: Metadata = { title: "Fluxo de caixa · Sobra Vida", robot
 // Até hoje vale o que aconteceu; de amanhã em diante, o que está em aberto pelo
 // vencimento. Atrasados entram em "hoje". Transferências entre contas não entram.
 
-type Parametros = Promise<{ mes?: string; todos?: string }>;
+type Parametros = Promise<{ mes?: string; todos?: string; conta?: string }>;
 
-type Dia = { dia: string; entradas: number; saidas: number; saldo: number; previsto: boolean };
+type Dia = {
+  dia: string;
+  entradas: number;
+  saidas: number;
+  saldo: number;
+  previsto: boolean;
+  entradasPrevistas: number;
+  saidasPrevistas: number;
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const mesNoEndereco = (iso: string) => iso.slice(0, 7);
 
@@ -26,16 +36,27 @@ async function Fluxo({ searchParams }: { searchParams: Parametros }) {
   const params = await searchParams;
   const mes = mesDoParametro(params.mes, hoje);
   const todos = params.todos === "1";
+  const conta = params.conta && UUID.test(params.conta) ? params.conta : undefined;
   const { inicio, fim } = intervaloDoMes(mes);
   const mesDeHoje = mesDoParametro(undefined, hoje);
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fluxo_diario", { p_inicio: inicio, p_fim: fim, p_hoje: hoje });
+  const [{ data, error }, contas] = await Promise.all([
+    supabase.rpc("fluxo_diario", { p_inicio: inicio, p_fim: fim, p_hoje: hoje, ...(conta ? { p_conta: conta } : {}) }),
+    supabase.from("contas_financeiras").select("id, instituicao, nome").eq("ativa", true),
+  ]);
+  const listaContas = (contas.data ?? [])
+    .map((c) => ({ id: c.id, rotulo: c.instituicao ? `${c.instituicao} · ${c.nome}` : c.nome }))
+    .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
+  const nomeConta = conta ? listaContas.find((c) => c.id === conta)?.rotulo : undefined;
 
   const botao =
     "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-line bg-surface px-3 font-semibold hover:border-muted";
-  const para = (m: string, mostrarTodos = todos) =>
-    `/relatorios/fluxo?mes=${mesNoEndereco(m)}${mostrarTodos ? "&todos=1" : ""}`;
+  // c: undefined mantém a conta atual; null volta para todas as contas.
+  const para = (m: string, mostrarTodos = todos, c?: string | null) => {
+    const alvo = c === undefined ? conta : c;
+    return `/relatorios/fluxo?mes=${mesNoEndereco(m)}${mostrarTodos ? "&todos=1" : ""}${alvo ? `&conta=${alvo}` : ""}`;
+  };
 
   const navegacao = (
     <nav className="flex items-center gap-2" aria-label="Mudar de mês">
@@ -43,7 +64,7 @@ async function Fluxo({ searchParams }: { searchParams: Parametros }) {
       <p className="min-w-0 flex-1 text-center font-display text-xl font-bold first-letter:uppercase">{nomeDoMes(mes)}</p>
       <Link href={para(somarMeses(mes, 1))} className={botao} aria-label="Mês seguinte">›</Link>
       {mes !== mesDeHoje && (
-        <Link href="/relatorios/fluxo" className={`${botao} text-sm`}>Hoje</Link>
+        <Link href={para(mesDeHoje)} className={`${botao} text-sm`}>Hoje</Link>
       )}
     </nav>
   );
@@ -65,6 +86,8 @@ async function Fluxo({ searchParams }: { searchParams: Parametros }) {
     saidas: Number(d.saidas),
     saldo: Number(d.saldo),
     previsto: d.previsto,
+    entradasPrevistas: Number(d.entradas_previstas),
+    saidasPrevistas: Number(d.saidas_previstas),
   }));
   if (dias.length === 0) return navegacao;
 
@@ -73,6 +96,9 @@ async function Fluxo({ searchParams }: { searchParams: Parametros }) {
   const centavos = (l: number[]) => l.reduce((s, v) => s + Math.round(v * 100), 0) / 100;
   const totalEntradas = centavos(dias.map((d) => d.entradas));
   const totalSaidas = centavos(dias.map((d) => d.saidas));
+  const entradasAbertas = centavos(dias.map((d) => d.entradasPrevistas));
+  const saidasAbertas = centavos(dias.map((d) => d.saidasPrevistas));
+  const r2 = (v: number) => Math.round(v * 100) / 100;
   const saldoFinal = dias[dias.length - 1].saldo;
   const menor = dias.reduce((m, d) => (d.saldo < m.saldo ? d : m), dias[0]);
   const visiveis = todos ? dias : dias.filter((d) => d.entradas !== 0 || d.saidas !== 0 || d.dia === hoje);
@@ -81,16 +107,52 @@ async function Fluxo({ searchParams }: { searchParams: Parametros }) {
     <>
       {navegacao}
 
+      <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1" aria-label="Escolher a conta">
+        {[{ id: undefined as string | undefined, rotulo: "Todas as contas" }, ...listaContas].map((c) => (
+          <Link
+            key={c.id ?? "todas"}
+            href={para(mes, todos, c.id ?? null)}
+            aria-current={conta === c.id ? "page" : undefined}
+            className={`flex min-h-11 shrink-0 items-center rounded-lg px-3 text-sm font-semibold ${
+              conta === c.id ? "bg-fg text-bg" : "border border-line bg-surface text-muted"
+            }`}
+          >
+            {c.rotulo}
+          </Link>
+        ))}
+      </nav>
+      {conta && (
+        <p className="text-sm text-muted">
+          Só a conta {nomeConta ?? "escolhida"}: aqui as transferências entram, porque mudam o saldo desta conta.
+        </p>
+      )}
+
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Resumo do mês">
         {[
           { rotulo: "Saldo no início", valor: saldoInicial },
-          { rotulo: "Entradas", valor: totalEntradas, tipo: "receita" as const },
-          { rotulo: "Saídas", valor: totalSaidas, tipo: "despesa" as const },
+          {
+            rotulo: "Entradas",
+            valor: totalEntradas,
+            tipo: "receita" as const,
+            partes: [r2(totalEntradas - entradasAbertas), entradasAbertas],
+          },
+          {
+            rotulo: "Saídas",
+            valor: totalSaidas,
+            tipo: "despesa" as const,
+            partes: [r2(totalSaidas - saidasAbertas), saidasAbertas],
+          },
           { rotulo: `Saldo em ${formatarData(fim).slice(0, 5)}`, valor: saldoFinal },
         ].map((c) => (
           <div key={c.rotulo} className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-3">
             <span className="text-xs font-semibold text-muted">{c.rotulo}</span>
             <Valor valor={c.valor} tipo={c.tipo} className="text-base sm:text-lg" />
+            {c.partes && (
+              <span className="flex flex-col text-xs text-muted tabular-nums">
+                <span>{formatarNumero(c.partes[0])} realizado</span>
+                <span>{formatarNumero(c.partes[1])} previsto</span>
+              </span>
+            )}
           </div>
         ))}
       </section>
