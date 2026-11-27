@@ -165,6 +165,9 @@ function JurosDoMes({ mes, doMes, doAno, economia, children }: {
         )}
       </p>
       {children}
+      <Link href="/relatorios/juros" className="self-start text-sm font-semibold text-accent underline-offset-4 hover:underline">
+        Ver juros e multas do ano
+      </Link>
     </section>
   );
 }
