@@ -4,41 +4,15 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { Ajuda } from "@/components/ui/ajuda";
 import { hojeEmSaoPaulo } from "@/lib/datas";
-import { formatarNumero } from "@/lib/dinheiro";
-import { media, mesesParaMedia, montarDre, type LinhaDre } from "@/lib/relatorios";
+import { formatarPercentual, media, mesesParaMedia, montarDre } from "@/lib/relatorios";
 import { createClient } from "@/lib/supabase/server";
+import { Celula, LinhaGrupo } from "./linhas";
 
 export const metadata: Metadata = { title: "Resultado do ano · Sobra Vida", robots: { index: false } };
 
 type Parametros = Promise<{ ano?: string }>;
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-
-/** Número sem "R$" (a tabela é larga); zero vira um traço discreto. */
-function Celula({ valor, forte = false, sinal = false }: { valor: number; forte?: boolean; sinal?: boolean }) {
-  if (valor === 0) return <td className="px-2 py-1.5 text-right text-muted">—</td>;
-  const cor = sinal ? (valor < 0 ? "text-neg" : "text-pos") : "";
-  return (
-    <td className={`whitespace-nowrap px-2 py-1.5 text-right tabular-nums ${forte ? "font-semibold" : ""} ${cor}`}>
-      {formatarNumero(valor)}
-    </td>
-  );
-}
-
-function LinhaGrupo({ g, mesesMedia }: { g: LinhaDre; mesesMedia: number }) {
-  return (
-    <tr className="border-t border-line">
-      <th scope="row" className="sticky left-0 bg-surface px-2 py-1.5 text-left font-normal">
-        {g.grupo}
-      </th>
-      {g.meses.map((v, i) => (
-        <Celula key={i} valor={v} />
-      ))}
-      <Celula valor={g.total} forte />
-      <Celula valor={media(g.total, mesesMedia)} />
-    </tr>
-  );
-}
 
 function LinhaTotal({ rotulo, meses, mesesMedia, sinal = false }: {
   rotulo: string;
@@ -57,6 +31,32 @@ function LinhaTotal({ rotulo, meses, mesesMedia, sinal = false }: {
       ))}
       <Celula valor={total} forte sinal={sinal} />
       <Celula valor={media(total, mesesMedia)} forte sinal={sinal} />
+    </tr>
+  );
+}
+
+/** Lucratividade (R7): resultado ÷ receitas, em %; "—" sem receita. */
+function LinhaLucratividade({ receitas, resultado }: { receitas: number[]; resultado: number[] }) {
+  const pct = (r: number, res: number) => (r > 0 ? Math.round((res / r) * 1000) / 10 : null);
+  const somar = (l: number[]) => l.reduce((s, v) => s + Math.round(v * 100), 0) / 100;
+  const celula = (chave: string, p: number | null, forte = false) => (
+    <td key={chave} className={`whitespace-nowrap px-2 py-1.5 text-right tabular-nums ${forte ? "font-semibold" : ""} ${p === null ? "text-muted" : p < 0 ? "text-neg" : ""}`}>
+      {formatarPercentual(p)}
+    </td>
+  );
+  return (
+    <tr className="border-t border-line">
+      <th scope="row" className="sticky left-0 bg-surface px-2 py-1.5 text-left font-semibold">
+        <span className="inline-flex items-center gap-1">
+          Lucratividade
+          <Ajuda titulo="Lucratividade">
+            Quanto das receitas sobrou: resultado ÷ receitas. Nos meses sem receita aparece um traço.
+          </Ajuda>
+        </span>
+      </th>
+      {receitas.map((r, i) => celula(String(i), pct(r, resultado[i])))}
+      {celula("total", pct(somar(receitas), somar(resultado)), true)}
+      <td className="px-2 py-1.5 text-right text-muted">—</td>
     </tr>
   );
 }
@@ -154,6 +154,7 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
               ))}
               <LinhaTotal rotulo="Total de despesas" meses={dre.totalDespesas} mesesMedia={mesesMedia} />
               <LinhaTotal rotulo="Resultado" meses={dre.resultado} mesesMedia={mesesMedia} sinal />
+              <LinhaLucratividade receitas={dre.totalReceitas} resultado={dre.resultado} />
             </tbody>
           </table>
         </div>
