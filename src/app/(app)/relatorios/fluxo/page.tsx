@@ -91,6 +91,20 @@ async function Fluxo({ searchParams }: { searchParams: Parametros }) {
     saidasPrevistas: Number(d.saidas_previstas),
   }));
   if (dias.length === 0) return navegacao;
+  if (listaContas.length === 0) {
+    return (
+      <>
+        {navegacao}
+        <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-line bg-surface p-6">
+          <p className="font-semibold">Nenhuma conta ativa</p>
+          <p className="text-muted">O fluxo de caixa soma os saldos das suas contas. Cadastre uma para começar.</p>
+          <Link href="/contas/nova" className="inline-flex min-h-11 items-center rounded-lg bg-accent px-4 font-semibold text-bg">
+            Cadastrar conta
+          </Link>
+        </div>
+      </>
+    );
+  }
 
   const primeiro = dias[0];
   const saldoInicial = Math.round((primeiro.saldo - primeiro.entradas + primeiro.saidas) * 100) / 100;
@@ -114,7 +128,8 @@ async function Fluxo({ searchParams }: { searchParams: Parametros }) {
             key={c.id ?? "todas"}
             href={para(mes, todos, c.id ?? null)}
             aria-current={conta === c.id ? "page" : undefined}
-            className={`flex min-h-11 shrink-0 items-center rounded-lg px-3 text-sm font-semibold ${
+            title={c.rotulo}
+            className={`flex min-h-11 max-w-60 shrink-0 items-center truncate rounded-lg px-3 text-sm font-semibold ${
               conta === c.id ? "bg-fg text-bg" : "border border-line bg-surface text-muted"
             }`}
           >
@@ -146,7 +161,15 @@ async function Fluxo({ searchParams }: { searchParams: Parametros }) {
           { rotulo: `Saldo em ${formatarData(fim).slice(0, 5)}`, valor: saldoFinal },
         ].map((c) => (
           <div key={c.rotulo} className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-3">
-            <span className="text-xs font-semibold text-muted">{c.rotulo}</span>
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted">
+              {c.rotulo}
+              {c.partes && (
+                <Ajuda titulo={`${c.rotulo}: realizado e previsto`}>
+                  Realizado: o que já foi pago ou recebido. Previsto: o que está em aberto, pelo
+                  vencimento (os atrasados contam em hoje).
+                </Ajuda>
+              )}
+            </span>
             <Valor valor={c.valor} tipo={c.tipo} className="text-base sm:text-lg" />
             {c.partes && (
               <span className="flex flex-col text-xs text-muted tabular-nums">

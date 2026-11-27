@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { Ajuda } from "@/components/ui/ajuda";
 import { Valor } from "@/components/ui/valor";
 import { formatarData, intervaloDoMes, nomeDoMes } from "@/lib/datas";
 import { createClient } from "@/lib/supabase/server";
@@ -156,7 +157,13 @@ async function Detalhe({ searchParams }: { searchParams: Parametros }) {
 export default function PaginaDetalheResultado({ searchParams }: { searchParams: Parametros }) {
   return (
     <div className="flex max-w-xl flex-col gap-4">
-      <h1 className="font-display text-3xl font-extrabold tracking-tight">Detalhe do resultado</h1>
+      <h1 className="flex items-center gap-2 font-display text-3xl font-extrabold tracking-tight">
+        Detalhe do resultado
+        <Ajuda titulo="Detalhe do resultado">
+          Os lançamentos que formam o valor tocado no relatório. Juros e multas aparecem separados, com o
+          lançamento de onde vieram. A soma é igual ao valor do relatório.
+        </Ajuda>
+      </h1>
       <Suspense fallback={<p className="text-muted">Carregando…</p>}>
         <Detalhe searchParams={searchParams} />
       </Suspense>

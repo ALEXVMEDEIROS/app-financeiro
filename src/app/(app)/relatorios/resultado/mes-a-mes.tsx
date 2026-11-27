@@ -16,11 +16,11 @@ function Grupo({ g, i, base }: { g: LinhaDre; i: number; base: string }) {
     <li>
       <details className="group">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 py-2">
-          <span className="flex items-center gap-1.5">
-            <span aria-hidden className="inline-block w-3 text-xs text-muted transition-transform group-open:rotate-90">▶</span>
-            {g.grupo}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span aria-hidden className="inline-block w-3 shrink-0 text-xs text-muted transition-transform group-open:rotate-90">▶</span>
+            <span className="truncate">{g.grupo}</span>
           </span>
-          <span className="tabular-nums">{formatarNumero(v)}</span>
+          <span className="shrink-0 tabular-nums">{formatarNumero(v)}</span>
         </summary>
         <ul className="mb-2 flex flex-col gap-1 pl-5">
           {cats.map((c) => (
@@ -30,7 +30,7 @@ function Grupo({ g, i, base }: { g: LinhaDre; i: number; base: string }) {
                 className="flex min-h-9 items-center justify-between gap-3 text-sm text-muted hover:text-accent"
               >
                 <span className="min-w-0 truncate">{c.nome}</span>
-                <span className="tabular-nums underline decoration-line decoration-dotted underline-offset-4">
+                <span className="shrink-0 tabular-nums underline decoration-line decoration-dotted underline-offset-4">
                   {formatarNumero(c.meses[i])}
                 </span>
               </Link>

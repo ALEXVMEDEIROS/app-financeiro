@@ -38,18 +38,19 @@ export function LinhaGrupo({ g, mesesMedia, base }: { g: LinhaDre; mesesMedia: n
   return (
     <>
       <tr className="border-t border-line">
-        <th scope="row" className="sticky left-0 bg-surface px-2 py-1.5 text-left font-normal">
+        <th scope="row" className="sticky left-0 max-w-56 bg-surface px-2 py-1.5 text-left font-normal">
           <button
             type="button"
             onClick={() => setAberto((a) => !a)}
             aria-expanded={aberto}
             aria-controls={id}
-            className="flex min-h-8 items-center gap-1.5 text-left hover:text-accent"
+            className="flex min-h-8 max-w-full items-center gap-1.5 text-left hover:text-accent"
+            title={g.grupo}
           >
             <span aria-hidden className={`inline-block w-3 text-xs text-muted transition-transform ${aberto ? "rotate-90" : ""}`}>
               ▶
             </span>
-            {g.grupo}
+            <span className="truncate">{g.grupo}</span>
             <span className="sr-only">{aberto ? " (fechar categorias)" : " (ver categorias)"}</span>
           </button>
         </th>
@@ -62,7 +63,7 @@ export function LinhaGrupo({ g, mesesMedia, base }: { g: LinhaDre; mesesMedia: n
       {aberto &&
         g.categorias.map((c, n) => (
           <tr key={c.nome} id={n === 0 ? id : undefined} className="text-xs">
-            <th scope="row" className="sticky left-0 bg-surface py-1 pl-8 pr-2 text-left font-normal text-muted">
+            <th scope="row" className="sticky left-0 max-w-56 truncate bg-surface py-1 pl-8 pr-2 text-left font-normal text-muted" title={c.nome}>
               {c.nome}
             </th>
             {c.meses.map((v, i) => (

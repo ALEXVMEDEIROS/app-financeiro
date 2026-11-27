@@ -18,7 +18,12 @@ const RAIO = 4;
 
 const curto = (v: number) => {
   const abs = Math.abs(v);
-  const s = abs >= 10_000 ? `${(abs / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil` : abs.toLocaleString("pt-BR");
+  const s =
+    abs >= 1_000_000
+      ? `${(abs / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mi`
+      : abs >= 10_000
+        ? `${(abs / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} mil`
+        : abs.toLocaleString("pt-BR");
   return v < 0 ? `−${s}` : s;
 };
 
