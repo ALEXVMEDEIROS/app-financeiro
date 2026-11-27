@@ -97,3 +97,83 @@ export function escalaComZero(valores: number[], partes = 4): { min: number; max
   for (let v = min; v <= max + passo / 2; v += passo) marcas.push(Math.round(v * 100) / 100);
   return { min, max, marcas };
 }
+
+// ---------------------------------------------------------------------------
+// Resultado do ano (DRE, R7): grupos nas linhas, meses nas colunas.
+// ---------------------------------------------------------------------------
+
+export type LinhaDreBruta = LinhaResultado & {
+  grupo: string;
+  grupo_ordem: number;
+  categoria: string;
+};
+
+export type LinhaDre = {
+  grupo: string;
+  ordem: number;
+  /** Valor de cada mês, janeiro (0) a dezembro (11). */
+  meses: number[];
+  total: number;
+  categorias: { nome: string; meses: number[]; total: number }[];
+};
+
+export type Dre = {
+  receitas: LinhaDre[];
+  despesas: LinhaDre[];
+  totalReceitas: number[];
+  totalDespesas: number[];
+  resultado: number[];
+};
+
+const doze = () => Array.from({ length: 12 }, () => 0);
+const reais = (centavosLista: number[]) => centavosLista.map((c) => c / 100);
+const somaLista = (l: number[]) => Math.round(l.reduce((s, v) => s + Math.round(v * 100), 0)) / 100;
+
+/** Agrupa as linhas de resultado_mensal por natureza, grupo e categoria. */
+export function montarDre(linhas: LinhaDreBruta[]): Dre {
+  const porNatureza = { receita: new Map<string, { ordem: number; meses: number[]; cats: Map<string, number[]> }>(), despesa: new Map<string, { ordem: number; meses: number[]; cats: Map<string, number[]> }>() };
+  for (const l of linhas) {
+    const mapa = l.natureza === "receita" ? porNatureza.receita : l.natureza === "despesa" ? porNatureza.despesa : null;
+    if (!mapa || l.mes < 1 || l.mes > 12) continue;
+    const g = mapa.get(l.grupo) ?? { ordem: l.grupo_ordem, meses: doze(), cats: new Map() };
+    const c = centavos(l.valor);
+    g.meses[l.mes - 1] += c;
+    const cat = g.cats.get(l.categoria) ?? doze();
+    cat[l.mes - 1] += c;
+    g.cats.set(l.categoria, cat);
+    mapa.set(l.grupo, g);
+  }
+  const lista = (mapa: typeof porNatureza.receita): LinhaDre[] =>
+    [...mapa.entries()]
+      .map(([grupo, g]) => {
+        const meses = reais(g.meses);
+        return {
+          grupo,
+          ordem: g.ordem,
+          meses,
+          total: somaLista(meses),
+          categorias: [...g.cats.entries()]
+            .map(([nome, m]) => ({ nome, meses: reais(m), total: somaLista(reais(m)) }))
+            .sort((a, b) => b.total - a.total || a.nome.localeCompare(b.nome, "pt-BR")),
+        };
+      })
+      .sort((a, b) => a.ordem - b.ordem || a.grupo.localeCompare(b.grupo, "pt-BR"));
+  const receitas = lista(porNatureza.receita);
+  const despesas = lista(porNatureza.despesa);
+  const somaMes = (grupos: LinhaDre[]) =>
+    doze().map((_, i) => grupos.reduce((s, g) => s + Math.round(g.meses[i] * 100), 0) / 100);
+  const totalReceitas = somaMes(receitas);
+  const totalDespesas = somaMes(despesas);
+  const resultado = totalReceitas.map((r, i) => Math.round((r - totalDespesas[i]) * 100) / 100);
+  return { receitas, despesas, totalReceitas, totalDespesas, resultado };
+}
+
+/** Quantos meses entram na média: até o mês atual no ano corrente, 12 nos anos passados, 0 no futuro. */
+export function mesesParaMedia(ano: number, hoje: string): number {
+  const anoHoje = Number(hoje.slice(0, 4));
+  if (ano < anoHoje) return 12;
+  if (ano > anoHoje) return 0;
+  return Number(hoje.slice(5, 7));
+}
+
+export const media = (total: number, meses: number) => (meses > 0 ? Math.round((total / meses) * 100) / 100 : 0);

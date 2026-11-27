@@ -127,9 +127,14 @@ function ResultadoDoMes({ mes, caixa, previsto }: { mes: string; caixa: Resumo; 
           </tr>
         </tbody>
       </table>
-      <Link href="/lancamentos" className="self-start text-sm font-semibold text-accent underline-offset-4 hover:underline">
-        Ver os lançamentos do mês
-      </Link>
+      <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
+        <Link href="/lancamentos" className="text-accent underline-offset-4 hover:underline">
+          Ver os lançamentos do mês
+        </Link>
+        <Link href="/relatorios/resultado" className="text-accent underline-offset-4 hover:underline">
+          Ver o resultado do ano
+        </Link>
+      </p>
     </section>
   );
 }
