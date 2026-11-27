@@ -171,7 +171,7 @@ export function FormConta({
         <Botao type="submit" disabled={salvando}>
           {salvando ? "Salvando…" : editando ? "Salvar alterações" : "Cadastrar conta"}
         </Botao>
-        <Link href="/contas" className="inline-flex min-h-11 items-center rounded-lg border border-line px-4 font-semibold">
+        <Link href={inicial.id ? `/contas/${inicial.id}` : "/contas"} className="inline-flex min-h-11 items-center rounded-lg border border-line px-4 font-semibold">
           Cancelar
         </Link>
       </div>

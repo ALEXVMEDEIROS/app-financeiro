@@ -79,14 +79,15 @@ export async function salvarConta(_anterior: EstadoConta, formData: FormData): P
     }
     return { mensagem: mensagemDeErro(error) };
   }
-  redirect("/contas");
+  // Editando: volta ao extrato da conta; criando: vai para a lista.
+  redirect(id ? `/contas/${id}` : "/contas");
 }
 
 /** Desativa ou reativa uma conta (contas com lançamentos não são apagadas). */
 export async function alternarAtiva(id: string, ativa: boolean) {
   const supabase = await createClient();
   await supabase.from("contas_financeiras").update({ ativa }).eq("id", id);
-  redirect("/contas");
+  redirect(`/contas/${id}`);
 }
 
 export type EstadoExcluir = { mensagem?: string };
