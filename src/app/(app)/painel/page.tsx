@@ -224,6 +224,9 @@ async function Painel() {
       {ativas.length > 0 && (
         <>
           <Saldos hoje={soma("saldo_atual")} previsto={soma("saldo_previsto")} fimDoMes={fim} />
+          <Link href="/relatorios/fluxo" className="-mt-2 self-start text-sm font-semibold text-accent underline-offset-4 hover:underline">
+            Ver o saldo dia a dia (fluxo de caixa)
+          </Link>
           <Suspense fallback={<div className="h-32 animate-pulse rounded-xl bg-line" />}>
             <Vencimentos hoje={hoje} />
           </Suspense>
