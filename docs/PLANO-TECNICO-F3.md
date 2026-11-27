@@ -2,6 +2,8 @@
 
 Sobra Vida · escrito em 26/11/2026 · fontes: documento de produto (regras R3, R5, R6, R7 e R12, telas), as notas da fase e o que a F2 deixou pronto. A planilha original não foi consultada.
 
+**Status: concluída em 27/11/2026.** Teste de aceite em setembro de 2026, em contas novas: resultado realizado e previsto, detalhe, extrato, fluxo por conta, juros e gráfico bateram com a conta feita à mão. Pedidos do usuário atendidos: origem dos juros no painel, "Caixa" renomeado para "Realizado", extrato por conta.
+
 ## Objetivo e critério de pronto
 
 A F3 responde às perguntas que motivam o app: quanto sobrou no mês, para onde foi o dinheiro no ano, como o saldo vai andar até o fim do mês e quanto foi perdido com juros e multas.
