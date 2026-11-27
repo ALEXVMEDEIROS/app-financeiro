@@ -7,10 +7,11 @@ import { hojeEmSaoPaulo } from "@/lib/datas";
 import { formatarPercentual, media, mesesParaMedia, montarDre } from "@/lib/relatorios";
 import { createClient } from "@/lib/supabase/server";
 import { Celula, LinhaGrupo } from "./linhas";
+import { MesAMes } from "./mes-a-mes";
 
 export const metadata: Metadata = { title: "Resultado do ano · Sobra Vida", robots: { index: false } };
 
-type Parametros = Promise<{ ano?: string; visao?: string }>;
+type Parametros = Promise<{ ano?: string; visao?: string; mes?: string }>;
 type Visao = "caixa" | "previsto";
 
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -76,7 +77,7 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
   await connection();
   const hoje = hojeEmSaoPaulo();
   const anoHoje = Number(hoje.slice(0, 4));
-  const { ano: textoAno, visao: textoVisao } = await searchParams;
+  const { ano: textoAno, visao: textoVisao, mes: textoMes } = await searchParams;
   const visao: Visao = textoVisao === "previsto" ? "previsto" : "caixa";
   // Endereço mantendo a visão escolhida (caixa é o padrão e não aparece).
   const para = (a?: number, v: Visao = visao) => {
@@ -135,6 +136,17 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
   }
 
   const dre = montarDre(data ?? []);
+  const baseDetalhe = `/relatorios/resultado/detalhe?ano=${ano}&visao=${visao}`;
+  // Celular: um mês por vez (o atual no ano corrente; dezembro nos passados; janeiro nos futuros).
+  const mesPedido = Number(textoMes);
+  const mesCelular =
+    Number.isInteger(mesPedido) && mesPedido >= 1 && mesPedido <= 12
+      ? mesPedido
+      : ano === anoHoje ? Number(hoje.slice(5, 7)) : ano < anoHoje ? 12 : 1;
+  const hrefMes = (m: number) => {
+    const base = para(ano);
+    return `${base}${base.includes("?") ? "&" : "?"}mes=${m}`;
+  };
   const vazio = dre.receitas.length === 0 && dre.despesas.length === 0;
 
   return (
@@ -153,7 +165,11 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
           {visao === "caixa" ? `Nenhuma receita ou despesa paga em ${ano}.` : `Nenhuma receita ou despesa com vencimento em ${ano}.`}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+        <>
+        <div className="sm:hidden">
+          <MesAMes dre={dre} mes={mesCelular} ano={ano} hrefMes={hrefMes} baseDetalhe={baseDetalhe} />
+        </div>
+        <div className="hidden overflow-x-auto rounded-xl border border-line bg-surface sm:block">
           <table className="w-full min-w-[60rem] border-collapse text-sm">
             <caption className="sr-only">Resultado de {ano} por grupo e mês, em reais</caption>
             <thead>
@@ -176,12 +192,12 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
             <tbody>
               <CabecalhoSecao titulo="Receitas" />
               {dre.receitas.map((g) => (
-                <LinhaGrupo key={g.grupo} g={g} mesesMedia={mesesMedia} />
+                <LinhaGrupo key={g.grupo} g={g} mesesMedia={mesesMedia} base={`${baseDetalhe}&natureza=receita`} />
               ))}
               <LinhaTotal rotulo="Total de receitas" meses={dre.totalReceitas} mesesMedia={mesesMedia} />
               <CabecalhoSecao titulo="Despesas" />
               {dre.despesas.map((g) => (
-                <LinhaGrupo key={g.grupo} g={g} mesesMedia={mesesMedia} />
+                <LinhaGrupo key={g.grupo} g={g} mesesMedia={mesesMedia} base={`${baseDetalhe}&natureza=despesa`} />
               ))}
               <LinhaTotal rotulo="Total de despesas" meses={dre.totalDespesas} mesesMedia={mesesMedia} />
               <LinhaTotal rotulo="Resultado" meses={dre.resultado} mesesMedia={mesesMedia} sinal />
@@ -189,6 +205,7 @@ async function Relatorio({ searchParams }: { searchParams: Parametros }) {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );
