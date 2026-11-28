@@ -48,14 +48,15 @@ export async function salvarPessoa(_anterior: EstadoPessoa, formData: FormData):
     ? await supabase.from("pessoas").update(dados).eq("id", id)
     : await supabase.from("pessoas").insert(dados);
   if (error) return { mensagem: mensagemDeErro(error) };
-  redirect("/configuracoes/pessoas");
+  // Ao editar, volta para a ficha da pessoa; ao cadastrar, para a lista.
+  redirect(id ? `/configuracoes/pessoas/${id}?aviso=salvo` : "/configuracoes/pessoas");
 }
 
 /** Desativa ou reativa: desativada some das sugestões, mas continua nos lançamentos antigos. */
 export async function alternarPessoa(id: string, ativa: boolean) {
   const supabase = await createClient();
   await supabase.from("pessoas").update({ ativa }).eq("id", id);
-  redirect("/configuracoes/pessoas");
+  redirect(`/configuracoes/pessoas/${id}?aviso=${ativa ? "reativada" : "desativada"}`);
 }
 
 export type EstadoExcluirPessoa = { mensagem?: string };

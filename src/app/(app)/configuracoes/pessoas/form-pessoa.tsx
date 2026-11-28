@@ -93,7 +93,7 @@ export function FormPessoa({ inicial }: { inicial: DadosPessoa }) {
           {salvando ? "Salvando…" : editando ? "Salvar alterações" : "Cadastrar pessoa"}
         </Botao>
         <Link
-          href="/configuracoes/pessoas"
+          href={inicial.id ? `/configuracoes/pessoas/${inicial.id}` : "/configuracoes/pessoas"}
           className="inline-flex min-h-11 items-center rounded-lg border border-line px-4 font-semibold"
         >
           Cancelar

@@ -108,7 +108,15 @@ async function Detalhe({ params, searchParams }: Props) {
                 {nomeConta.get(l.conta_id) ?? "—"}
               </Linha>
               {pessoa.data && (
-                <Linha rotulo={tipo === "receita" ? "Recebido de" : "Pago a"}>{pessoa.data.nome}</Linha>
+                <Linha rotulo={tipo === "receita" ? "Recebido de" : "Pago a"}>
+                  <Link
+                    href={`/configuracoes/pessoas/${l.pessoa_id}`}
+                    className="text-accent underline underline-offset-4"
+                    title="Ver todas as operações com esta pessoa"
+                  >
+                    {pessoa.data.nome}
+                  </Link>
+                </Linha>
               )}
             </>
           )}
