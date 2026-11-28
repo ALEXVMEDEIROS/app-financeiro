@@ -353,32 +353,56 @@ export type Database = {
       pessoas: {
         Row: {
           ativa: boolean
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
           contato: string | null
           criado_em: string
+          descricao: string | null
           documento: string | null
           id: string
+          logradouro: string | null
           nome: string
+          numero: string | null
           tipo: string
+          uf: string | null
           usuario_id: string
         }
         Insert: {
           ativa?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           contato?: string | null
           criado_em?: string
+          descricao?: string | null
           documento?: string | null
           id?: string
+          logradouro?: string | null
           nome: string
+          numero?: string | null
           tipo?: string
+          uf?: string | null
           usuario_id?: string
         }
         Update: {
           ativa?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           contato?: string | null
           criado_em?: string
+          descricao?: string | null
           documento?: string | null
           id?: string
+          logradouro?: string | null
           nome?: string
+          numero?: string | null
           tipo?: string
+          uf?: string | null
           usuario_id?: string
         }
         Relationships: []

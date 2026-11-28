@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useState, type InputHTMLAttributes } from "react";
 import { AvisoErro, Campo } from "@/components/campo";
 import { Ajuda } from "@/components/ui/ajuda";
 import { Botao } from "@/components/ui/botao";
 import { SelecaoAgrupada } from "@/components/ui/campos";
 import { excluirPessoa, salvarPessoa, type EstadoExcluirPessoa, type EstadoPessoa } from "./acoes";
+import { formatarCep, UFS } from "./tipos";
 
 export type DadosPessoa = {
   id?: string;
@@ -14,7 +15,52 @@ export type DadosPessoa = {
   tipo?: string;
   documento?: string | null;
   contato?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  cep?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+  descricao?: string | null;
 };
+
+const LIMITE_DESCRICAO = 1000;
+
+/** Campo de texto simples e opcional, com mensagem de erro embaixo. */
+function CampoTexto({
+  id,
+  rotulo,
+  valor,
+  erro,
+  maximo,
+  className = "",
+  ...resto
+}: {
+  id: string;
+  rotulo: string;
+  valor?: string | null;
+  erro?: string;
+  maximo: number;
+  className?: string;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "className">) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+      <label htmlFor={id} className="text-sm font-semibold">{rotulo}</label>
+      <input
+        id={id}
+        name={id}
+        autoComplete="off"
+        maxLength={maximo}
+        defaultValue={valor ?? ""}
+        aria-invalid={Boolean(erro)}
+        className={estilo(erro)}
+        {...resto}
+      />
+      {erro && <p className="text-sm text-neg">{erro}</p>}
+    </div>
+  );
+}
 
 const TIPOS = [
   { valor: "fornecedor", rotulo: "Fornecedor (você paga a ele)" },
@@ -31,16 +77,24 @@ export function FormPessoa({ inicial }: { inicial: DadosPessoa }) {
   const [estado, acao, salvando] = useActionState(salvarPessoa, {} as EstadoPessoa);
   const editando = Boolean(inicial.id);
   const e = estado.erros ?? {};
+  // Depois de um erro valem os valores devolvidos; senão, os da pessoa em edição.
+  const v: DadosPessoa = estado.valores ? { ...inicial, ...estado.valores } : inicial;
+  const [tamanhoDescricao, setTamanhoDescricao] = useState((v.descricao ?? "").length);
+  // O endereço fica recolhido; abre se já estiver preenchido ou se o erro estiver lá dentro.
+  const abrirEndereco =
+    Boolean(v.logradouro || v.numero || v.complemento || v.bairro) ||
+    Boolean(v.cep || v.cidade || v.uf) ||
+    Boolean(e.logradouro || e.numero || e.complemento || e.bairro || e.cep || e.cidade || e.uf);
 
   return (
     <form action={acao} noValidate className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-5">
       {inicial.id && <input type="hidden" name="id" value={inicial.id} />}
-      <Campo id="nome" rotulo="Nome" autoComplete="off" valorInicial={inicial.nome} erro={e.nome} />
+      <Campo id="nome" rotulo="Nome" autoComplete="off" valorInicial={v.nome} erro={e.nome} />
       <SelecaoAgrupada
         id="tipo"
         rotulo="Tipo"
         grupos={[{ grupo: "", opcoes: TIPOS }]}
-        valorInicial={inicial.tipo ?? "fornecedor"}
+        valorInicial={v.tipo ?? "fornecedor"}
         erro={e.tipo}
         ajuda={
           <Ajuda titulo="Tipo">
@@ -65,7 +119,7 @@ export function FormPessoa({ inicial }: { inicial: DadosPessoa }) {
           inputMode="numeric"
           autoComplete="off"
           maxLength={20}
-          defaultValue={inicial.documento ?? ""}
+          defaultValue={v.documento ?? ""}
           aria-invalid={Boolean(e.documento)}
           className={`${estilo(e.documento)} tabular-nums`}
         />
@@ -81,11 +135,114 @@ export function FormPessoa({ inicial }: { inicial: DadosPessoa }) {
           autoComplete="off"
           maxLength={200}
           placeholder="Telefone, e-mail ou observação"
-          defaultValue={inicial.contato ?? ""}
+          defaultValue={v.contato ?? ""}
           aria-invalid={Boolean(e.contato)}
           className={estilo(e.contato)}
         />
         {e.contato && <p className="text-sm text-neg">{e.contato}</p>}
+      </div>
+      <details open={abrirEndereco || undefined} className="rounded-lg border border-line p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-accent">
+          Endereço <span className="font-normal text-muted">(opcional)</span>
+        </summary>
+        <div className="mt-3 grid grid-cols-6 gap-3">
+          <CampoTexto
+            id="cep"
+            rotulo="CEP"
+            valor={v.cep ? formatarCep(v.cep) : ""}
+            erro={e.cep}
+            maximo={10}
+            inputMode="numeric"
+            placeholder="00000-000"
+            className="col-span-3 sm:col-span-2"
+          />
+          <div className="col-span-6 hidden sm:col-span-4 sm:block" />
+          <CampoTexto
+            id="logradouro"
+            rotulo="Rua"
+            valor={v.logradouro}
+            erro={e.logradouro}
+            maximo={150}
+            placeholder="Rua, avenida, travessa…"
+            className="col-span-6 sm:col-span-4"
+          />
+          <CampoTexto
+            id="numero"
+            rotulo="Número"
+            valor={v.numero}
+            erro={e.numero}
+            maximo={20}
+            placeholder="123 ou s/n"
+            className="col-span-2 sm:col-span-2"
+          />
+          <CampoTexto
+            id="complemento"
+            rotulo="Complemento"
+            valor={v.complemento}
+            erro={e.complemento}
+            maximo={80}
+            placeholder="Apto, sala, bloco"
+            className="col-span-4 sm:col-span-3"
+          />
+          <CampoTexto
+            id="bairro"
+            rotulo="Bairro"
+            valor={v.bairro}
+            erro={e.bairro}
+            maximo={80}
+            className="col-span-6 sm:col-span-3"
+          />
+          <CampoTexto
+            id="cidade"
+            rotulo="Cidade"
+            valor={v.cidade}
+            erro={e.cidade}
+            maximo={80}
+            className="col-span-4"
+          />
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <label htmlFor="uf" className="text-sm font-semibold">Estado</label>
+            <select
+              id="uf"
+              name="uf"
+              defaultValue={v.uf ?? ""}
+              aria-invalid={Boolean(e.uf)}
+              className={estilo(e.uf)}
+            >
+              <option value="">—</option>
+              {UFS.map((uf) => (
+                <option key={uf} value={uf}>{uf}</option>
+              ))}
+            </select>
+            {e.uf && <p className="text-sm text-neg">{e.uf}</p>}
+          </div>
+        </div>
+      </details>
+      <div className="flex flex-col gap-1.5">
+        <span className="flex items-center gap-2">
+          <label htmlFor="descricao" className="text-sm font-semibold">
+            Descrição <span className="font-normal text-muted">(opcional)</span>
+          </label>
+          <Ajuda titulo="Descrição">
+            Anotações sobre a pessoa: quem é, o que ela faz para você, combinados, horários. Até{" "}
+            {LIMITE_DESCRICAO} caracteres.
+          </Ajuda>
+        </span>
+        <textarea
+          id="descricao"
+          name="descricao"
+          rows={4}
+          maxLength={LIMITE_DESCRICAO}
+          defaultValue={v.descricao ?? ""}
+          onChange={(ev) => setTamanhoDescricao(ev.target.value.length)}
+          aria-invalid={Boolean(e.descricao)}
+          aria-describedby="descricao-contador"
+          className={`${estilo(e.descricao)} py-2`}
+        />
+        <p id="descricao-contador" className="text-right text-xs text-muted" aria-live="polite">
+          {tamanhoDescricao} de {LIMITE_DESCRICAO}
+        </p>
+        {e.descricao && <p className="text-sm text-neg">{e.descricao}</p>}
       </div>
       <AvisoErro mensagem={estado.mensagem} />
       <div className="flex flex-wrap gap-3 pt-2">

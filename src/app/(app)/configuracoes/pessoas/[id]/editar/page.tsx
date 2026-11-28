@@ -16,7 +16,7 @@ async function Edicao({ params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
   const { data: pessoa } = await supabase
     .from("pessoas")
-    .select("id, nome, tipo, documento, contato, ativa")
+    .select("id, nome, tipo, documento, contato, ativa, logradouro, numero, complemento, bairro, cep, cidade, uf, descricao")
     .eq("id", id)
     .maybeSingle();
 

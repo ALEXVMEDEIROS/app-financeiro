@@ -8,7 +8,7 @@ import { Valor } from "@/components/ui/valor";
 import { formatarData, hojeEmSaoPaulo, situacao, type Situacao } from "@/lib/datas";
 import { valorEfetivo } from "@/lib/parcelas";
 import { createClient } from "@/lib/supabase/server";
-import { NOME_TIPO_PESSOA } from "../tipos";
+import { linhasDoEndereco, NOME_TIPO_PESSOA } from "../tipos";
 
 export const metadata: Metadata = { title: "Pessoa · Sobra Vida", robots: { index: false } };
 
@@ -57,7 +57,7 @@ async function Ficha({ params, searchParams }: Props) {
   const supabase = await createClient();
   const { data: pessoa } = await supabase
     .from("pessoas")
-    .select("id, nome, tipo, documento, contato, ativa")
+    .select("id, nome, tipo, documento, contato, ativa, logradouro, numero, complemento, bairro, cep, cidade, uf, descricao")
     .eq("id", id)
     .maybeSingle();
 
@@ -117,6 +117,7 @@ async function Ficha({ params, searchParams }: Props) {
     .filter(Boolean)
     .join(" · ");
   const textoAviso = aviso ? AVISOS[aviso] : undefined;
+  const endereco = linhasDoEndereco(pessoa);
 
   return (
     <div className="flex flex-col gap-4">
@@ -129,6 +130,9 @@ async function Ficha({ params, searchParams }: Props) {
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-extrabold tracking-tight">{pessoa.nome}</h1>
           <p className="text-sm text-muted">{detalhePessoa}</p>
+          {endereco.map((linha) => (
+            <p key={linha} className="text-sm text-muted">{linha}</p>
+          ))}
           {!pessoa.ativa && <p className="text-sm text-warn">Desativada</p>}
         </div>
         <Link
@@ -138,6 +142,12 @@ async function Ficha({ params, searchParams }: Props) {
           Editar dados
         </Link>
       </div>
+
+      {pessoa.descricao && (
+        <section aria-label="Descrição" className="rounded-xl border border-line bg-surface p-4">
+          <p className="whitespace-pre-line break-words text-sm">{pessoa.descricao}</p>
+        </section>
+      )}
 
       {lancamentos.error ? (
         <p className="rounded-lg bg-neg/10 px-3 py-2 text-neg" role="alert">
