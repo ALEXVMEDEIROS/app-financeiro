@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "copia-banco": "node scripts/copia-banco.mjs",
     "tipos": "supabase gen types --lang typescript --schema public --remote > src/lib/supabase/tipos.ts"
   },
   "dependencies": {
